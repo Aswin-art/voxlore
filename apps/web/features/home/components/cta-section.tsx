@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ActionButton } from "@workspace/ui/components/action-button"
 import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons"
 
@@ -20,9 +21,11 @@ export function CtaSection() {
             Siap Menyelami Cerita &amp; Warisan Budaya Nusantara?
           </h2>
 
-          <ActionButton variant="white" icon={ArrowUpRight01Icon}>
-            Mulai Jelajahi Sekarang
-          </ActionButton>
+          <Link href="/register">
+            <ActionButton variant="white" icon={ArrowUpRight01Icon}>
+              Mulai Jelajahi Sekarang
+            </ActionButton>
+          </Link>
         </div>
 
         <div className="w-full shrink-0 h-4 sm:h-6" />

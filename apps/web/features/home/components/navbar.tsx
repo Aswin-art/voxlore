@@ -16,20 +16,24 @@ import {
 } from "@workspace/ui/components/sheet"
 import { ActionButton } from "@workspace/ui/components/action-button"
 
-interface NavbarProps {
-  theme?: "dark" | "light"
+interface NavLink {
+  name: string
+  href: string
 }
 
-export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [activeNav, setActiveNav] = useState("BERANDA")
+const NAV_LINKS: NavLink[] = [
+  { name: "BERANDA", href: "/#" },
+  { name: "PHILOSOPHY", href: "/#about-section" },
+  { name: "CARA KERJA", href: "/#how-it-works-section" },
+  { name: "DESTINASI BUDAYA", href: "/#culture-list-section" },
+]
+
+function useSectionThemeObserver(forcedTheme?: "dark" | "light") {
   const [currentTheme, setCurrentTheme] = useState<"dark" | "light">("dark")
 
-  // Observe section theme attribute changes on scroll
   useEffect(() => {
     if (forcedTheme) return
 
-    // Initial check on mount
     const initialElement = document.querySelector("[data-nav-theme]")
     if (initialElement) {
       const theme = initialElement.getAttribute("data-nav-theme")
@@ -57,26 +61,30 @@ export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
 
     const observer = new IntersectionObserver(handleIntersect, observerOptions)
     const sections = document.querySelectorAll("[data-nav-theme]")
-    sections.forEach((sec) => observer.observe(sec))
+    sections.forEach((section) => observer.observe(section))
 
     return () => observer.disconnect()
   }, [forcedTheme])
 
-  const activeTheme = forcedTheme ?? currentTheme
-  const isDarkHeader = isOpen || activeTheme === "dark"
+  return forcedTheme ?? currentTheme
+}
 
-  const mainLinks = [
-    { name: "BERANDA", href: "/#" },
-    { name: "PHILOSOPHY", href: "/#about-section" },
-    { name: "CARA KERJA", href: "/#how-it-works-section" },
-    { name: "DESTINASI BUDAYA", href: "/#culture-list-section" },
-  ]
+interface NavbarProps {
+  theme?: "dark" | "light"
+}
+
+export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeNav, setActiveNav] = useState("BERANDA")
+
+  const activeTheme = useSectionThemeObserver(forcedTheme)
+  const isDarkHeader = isOpen || activeTheme === "dark"
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      {/* Fixed Top Header Bar (Always at z-[60] above Sheet Content to prevent blocking) */}
+      {/* Fixed Top Header Bar */}
       <header className="fixed top-0 left-0 right-0 z-[60] p-4 sm:p-6 lg:p-8 flex items-center justify-between pointer-events-none">
-        {/* Left: Logo & Brand (Enlarged 1.5x) */}
+        {/* Left: Logo & Brand */}
         <Link href="/" className="flex items-center gap-3 sm:gap-3.5 pointer-events-auto group">
           <div className="relative h-9 sm:h-10 w-9 sm:w-10 flex items-center justify-center">
             <AnimatePresence mode="wait">
@@ -108,7 +116,7 @@ export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
           </motion.span>
         </Link>
 
-        {/* Right: Hamburger/Close Button directly on Shadcn SheetTrigger to eliminate nested <button> hydration error */}
+        {/* Right: Hamburger/Close Button */}
         <SheetTrigger
           aria-label="Toggle menu"
           className="p-2 pointer-events-auto focus:outline-none cursor-pointer bg-transparent border-none"
@@ -135,7 +143,7 @@ export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
         </SheetTrigger>
       </header>
 
-      {/* Fullscreen Shadcn Sheet Content with Framer Motion AnimatePresence Exit */}
+      {/* Fullscreen Navigation Sheet */}
       <AnimatePresence>
         {isOpen && (
           <SheetContent
@@ -157,9 +165,9 @@ export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
                 </SheetDescription>
               </SheetHeader>
 
-              {/* Main Content Flex: Align Left Text Exactly with Top Header Logo */}
+              {/* Main Content Layout */}
               <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between w-full my-auto flex-1 py-6 gap-8">
-                {/* Left Side: Brand Explanation Text & ActionButton */}
+                {/* Brand Narrative Block */}
                 <div className="flex flex-col gap-4 text-left max-w-md mt-auto order-2 lg:order-1">
                   <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
                     Menghidupkan Kembali Sejarah Nusantara
@@ -181,9 +189,9 @@ export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
                   </div>
                 </div>
 
-                {/* Right Side: Main Navigation Links */}
+                {/* Navigation Links */}
                 <div className="flex flex-col items-start lg:items-end justify-center gap-5 sm:gap-10 order-1 lg:order-2 my-auto lg:pr-8">
-                  {mainLinks.map((item) => {
+                  {NAV_LINKS.map((item) => {
                     const isActive = activeNav === item.name
                     return (
                       <div

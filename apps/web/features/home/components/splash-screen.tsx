@@ -4,40 +4,51 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "motion/react"
 
+const SPLASH_STORAGE_KEY = "voxlore_splash_shown"
+const SPLASH_DURATION_MS = 2400
+
+function lockBodyScroll() {
+  document.documentElement.classList.add("overflow-hidden")
+  document.body.classList.add("overflow-hidden")
+}
+
+function unlockBodyScroll() {
+  document.documentElement.classList.remove("overflow-hidden")
+  document.body.classList.remove("overflow-hidden")
+}
+
 export function SplashScreen() {
   const [isMounted, setIsMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    const hasSeenSplash = sessionStorage.getItem("voxlore_splash_shown")
+    const hasSeenSplash = sessionStorage.getItem(SPLASH_STORAGE_KEY)
 
-    if (!hasSeenSplash) {
-      setIsVisible(true)
-      document.documentElement.classList.add("overflow-hidden")
-      document.body.classList.add("overflow-hidden")
-
-      const timer = setTimeout(() => {
-        setIsVisible(false)
-        sessionStorage.setItem("voxlore_splash_shown", "true")
-        document.documentElement.classList.remove("overflow-hidden")
-        document.body.classList.remove("overflow-hidden")
-      }, 2400)
-
+    if (hasSeenSplash) {
       setIsMounted(true)
+      return
+    }
 
-      return () => {
-        clearTimeout(timer)
-        document.documentElement.classList.remove("overflow-hidden")
-        document.body.classList.remove("overflow-hidden")
-      }
-    } else {
-      setIsMounted(true)
+    setIsVisible(true)
+    lockBodyScroll()
+
+    const timer = setTimeout(() => {
+      setIsVisible(false)
+      sessionStorage.setItem(SPLASH_STORAGE_KEY, "true")
+      unlockBodyScroll()
+    }, SPLASH_DURATION_MS)
+
+    setIsMounted(true)
+
+    return () => {
+      clearTimeout(timer)
+      unlockBodyScroll()
     }
   }, [])
 
-  // Blank white screen fallback during hydration/session check to prevent content flash
+  // Seamless fallback during hydration to prevent white/content flash
   if (!isMounted) {
-    return <div className="fixed inset-0 z-[100] bg-white" />
+    return <div className="fixed inset-0 z-[100] bg-[#101216]" />
   }
 
   return (
