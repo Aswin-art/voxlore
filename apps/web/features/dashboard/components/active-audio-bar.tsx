@@ -32,19 +32,36 @@ export const CURRENT_ACTIVE_AUDIO: ActiveAudioTrack = {
 }
 
 interface FloatingAudioBarProps {
+  track?: ActiveAudioTrack | null
+  isPlaying?: boolean
+  onTogglePlay?: () => void
   onOpenPlayer?: () => void
   onDismiss?: () => void
+  className?: string
 }
 
-export function ActiveAudioBar({ onOpenPlayer, onDismiss }: FloatingAudioBarProps) {
-  const [isPlaying, setIsPlaying] = useState(false)
+export function ActiveAudioBar({
+  track = CURRENT_ACTIVE_AUDIO,
+  isPlaying: externalIsPlaying,
+  onTogglePlay,
+  onOpenPlayer,
+  onDismiss,
+  className = "bottom-[76px]",
+}: FloatingAudioBarProps) {
+  const [internalIsPlaying, setInternalIsPlaying] = useState(true)
   const [isDismissed, setIsDismissed] = useState(false)
 
-  if (isDismissed) return null
+  if (!track || isDismissed) return null
+
+  const isPlaying = externalIsPlaying !== undefined ? externalIsPlaying : internalIsPlaying
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setIsPlaying(!isPlaying)
+    if (onTogglePlay) {
+      onTogglePlay()
+    } else {
+      setInternalIsPlaying(!internalIsPlaying)
+    }
   }
 
   const handleClose = (e: React.MouseEvent) => {
@@ -56,14 +73,14 @@ export function ActiveAudioBar({ onOpenPlayer, onDismiss }: FloatingAudioBarProp
   return (
     <div
       onClick={onOpenPlayer}
-      className="fixed bottom-[74px] inset-x-0 w-[calc(100%-2rem)] sm:max-w-[416px] mx-auto z-30 bg-primary text-primary-foreground rounded-2xl border border-white/15 shadow-2xl p-2.5 sm:p-3 flex flex-col gap-2 cursor-pointer"
+      className={`fixed inset-x-0 w-[calc(100%-2rem)] sm:max-w-[416px] mx-auto z-50 bg-primary text-primary-foreground rounded-2xl border border-white/15 shadow-2xl p-2.5 sm:p-3 flex flex-col gap-2 cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-300 ${className}`}
     >
       <div className="flex items-center justify-between gap-3">
         {/* Track Thumbnail */}
         <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/15">
           <Image
-            src={CURRENT_ACTIVE_AUDIO.image}
-            alt={CURRENT_ACTIVE_AUDIO.title}
+            src={track.image}
+            alt={track.title}
             fill
             className="object-cover"
             sizes="44px"
@@ -73,13 +90,13 @@ export function ActiveAudioBar({ onOpenPlayer, onDismiss }: FloatingAudioBarProp
         {/* Track Info */}
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
+            <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-emerald-400 animate-ping" : "bg-white/40"}`} />
             <span className="text-xs font-extrabold text-white truncate">
-              {CURRENT_ACTIVE_AUDIO.title}
+              {track.title}
             </span>
           </div>
-          <span className="text-[11px] text-white/70 truncate font-medium">
-            {CURRENT_ACTIVE_AUDIO.spotName}
+          <span className="text-[11px] text-white/80 truncate font-medium">
+            {track.spotName}
           </span>
         </div>
 
@@ -88,7 +105,7 @@ export function ActiveAudioBar({ onOpenPlayer, onDismiss }: FloatingAudioBarProp
           <button
             onClick={togglePlay}
             aria-label={isPlaying ? "Jeda Audio" : "Putar Audio"}
-            className="w-9 h-9 rounded-full bg-white text-primary flex items-center justify-center cursor-pointer shadow-xs"
+            className="w-9 h-9 rounded-full bg-white text-primary flex items-center justify-center cursor-pointer shadow-xs hover:scale-105 transition-transform"
           >
             <HugeiconsIcon
               icon={isPlaying ? PauseIcon : PlayIcon}
@@ -99,7 +116,7 @@ export function ActiveAudioBar({ onOpenPlayer, onDismiss }: FloatingAudioBarProp
           <button
             onClick={handleClose}
             aria-label="Tutup Pemutar Floating"
-            className="w-7 h-7 rounded-full text-white/50 hover:text-white flex items-center justify-center cursor-pointer"
+            className="w-7 h-7 rounded-full text-white/60 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
           >
             <HugeiconsIcon icon={Cancel01Icon} className="w-4 h-4" />
           </button>
@@ -109,8 +126,8 @@ export function ActiveAudioBar({ onOpenPlayer, onDismiss }: FloatingAudioBarProp
       {/* Progress Bar Line */}
       <div className="w-full h-1 bg-white/15 rounded-full overflow-hidden">
         <div
-          className="h-full bg-blue-500 rounded-full transition-all duration-300"
-          style={{ width: `${CURRENT_ACTIVE_AUDIO.progressPercent}%` }}
+          className="h-full bg-emerald-400 rounded-full transition-all duration-300"
+          style={{ width: `${track.progressPercent}%` }}
         />
       </div>
     </div>

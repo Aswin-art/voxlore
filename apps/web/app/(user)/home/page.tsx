@@ -2,16 +2,24 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { HomeHeader } from "@/features/dashboard/components/home-header"
 import { ExploreGrid } from "@/features/dashboard/components/explore-grid"
-import { PopularDestinations, DestinationItem, POPULAR_DESTINATIONS_DATA } from "@/features/dashboard/components/popular-destinations"
-import { CulturalEventsSection, CulturalEvent } from "@/features/dashboard/components/cultural-events-section"
+import { PopularDestinations, DestinationItem } from "@/features/dashboard/components/popular-destinations"
+import { RecentPlansSection } from "@/features/dashboard/components/recent-plans-section"
 import { DestinationDetailSheet } from "@/features/dashboard/components/destination-detail-sheet"
+import { ActiveAudioBar } from "@/features/dashboard/components/active-audio-bar"
 
 export default function HomePage() {
   const router = useRouter()
   const [selectedDestination, setSelectedDestination] = useState<DestinationItem | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const userProfile = {
+    name: "Aswin",
+    greeting: "Selamat Datang,",
+    initials: "A",
+  }
 
   const handleSelectDestination = (destination: DestinationItem) => {
     setSelectedDestination(destination)
@@ -24,13 +32,11 @@ export default function HomePage() {
     setTimeout(() => setToastMessage(null), 4000)
   }
 
-  const handleSelectEvent = (event: CulturalEvent) => {
-    setToastMessage(`Melihat Detail Event: ${event.title}`)
-    setTimeout(() => setToastMessage(null), 4000)
-  }
-
   return (
     <div className="flex flex-col">
+      {/* Top Bar User Header */}
+      <HomeHeader user={userProfile} />
+
       {toastMessage && (
         <div className="mx-4 my-2 p-3 bg-primary text-primary-foreground text-xs font-bold rounded-2xl flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
           <span>{toastMessage}</span>
@@ -46,13 +52,7 @@ export default function HomePage() {
           if (catId === "explore-culture") {
             router.push("/explore")
           } else if (catId === "explore-festivals") {
-            const eventsEl = document.getElementById("cultural-events-section")
-            if (eventsEl) {
-              eventsEl.scrollIntoView({ behavior: "smooth" })
-            } else {
-              setToastMessage("Menampilkan Kalender Festival & Acara Adat")
-              setTimeout(() => setToastMessage(null), 3000)
-            }
+            router.push("/events")
           }
         }}
       />
@@ -60,8 +60,11 @@ export default function HomePage() {
       {/* 2. Popular Destinations Touch Carousel */}
       <PopularDestinations onSelectDestination={handleSelectDestination} />
 
-      {/* 3. Cultural Events & Ritual Calendar */}
-      <CulturalEventsSection onSelectEvent={handleSelectEvent} />
+      {/* 3. Recent Travel Plans Section */}
+      <RecentPlansSection className="px-4 sm:px-5 py-4 bg-white dark:bg-background border-t border-border/60" />
+
+      {/* Floating Mini Audio Player (Spotify-style) */}
+      <ActiveAudioBar />
 
       {/* Destination Detail Sheet Modal */}
       <DestinationDetailSheet

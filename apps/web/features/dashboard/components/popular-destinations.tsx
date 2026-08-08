@@ -21,7 +21,6 @@ export interface DestinationItem {
   id: string
   title: string
   location: string
-  price: string
   rating: number
   duration: string
   listeners: string
@@ -35,7 +34,6 @@ export const POPULAR_DESTINATIONS_DATA: DestinationItem[] = [
     id: "prambanan",
     title: "Candi Prambanan",
     location: "Sleman, Yogyakarta",
-    price: "Rp 25.000",
     rating: 4.9,
     duration: "45-60 min",
     listeners: "1.2k+",
@@ -48,7 +46,6 @@ export const POPULAR_DESTINATIONS_DATA: DestinationItem[] = [
     id: "borobudur",
     title: "Candi Borobudur",
     location: "Magelang, Jawa Tengah",
-    price: "Rp 25.000",
     rating: 5.0,
     duration: "60-90 min",
     listeners: "2.4k+",
@@ -61,7 +58,6 @@ export const POPULAR_DESTINATIONS_DATA: DestinationItem[] = [
     id: "uluwatu",
     title: "Tari Kecak Uluwatu",
     location: "Badung, Bali",
-    price: "Rp 35.000",
     rating: 4.8,
     duration: "30-45 min",
     listeners: "980+",
@@ -74,7 +70,6 @@ export const POPULAR_DESTINATIONS_DATA: DestinationItem[] = [
     id: "wayang",
     title: "Wayang Kulit Purwa",
     location: "Surakarta, Jawa Tengah",
-    price: "Rp 20.000",
     rating: 4.9,
     duration: "40 min",
     listeners: "650+",
@@ -113,7 +108,7 @@ export function PopularDestinations({ onSelectDestination }: PopularDestinations
             Destinasi Populer
           </h2>
           <p className="text-xs text-muted-foreground">
-            Audio pass terfavorit wisatawan minggu ini
+            Audio guide terfavorit wisatawan minggu ini
           </p>
         </div>
 
@@ -187,9 +182,6 @@ export function PopularDestinations({ onSelectDestination }: PopularDestinations
                           <h3 className="text-sm font-extrabold text-foreground line-clamp-1">
                             {dest.title}
                           </h3>
-                          <span className="text-xs font-black text-primary shrink-0">
-                            {dest.price}
-                          </span>
                         </div>
 
                         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useQueryState, parseAsString } from "nuqs"
+import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Notification01Icon,
@@ -15,24 +16,35 @@ export interface UserProfile {
   initials: string
 }
 
-interface DashboardHeaderProps {
+interface HomeHeaderProps {
   user?: UserProfile
   onSearchChange?: (query: string) => void
 }
 
-export function DashboardHeader({
+export function HomeHeader({
   user = {
     name: "Aswin",
     greeting: "Selamat Datang,",
     initials: "A",
   },
   onSearchChange,
-}: DashboardHeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("")
+}: HomeHeaderProps) {
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""))
+
+  const handleRedirectToExplore = () => {
+    if (searchQuery.trim()) {
+      router.push(`/explore?q=${encodeURIComponent(searchQuery)}`)
+    } else {
+      router.push("/explore")
+    }
+  }
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value)
-    onSearchChange?.(e.target.value)
+    const val = e.target.value
+    setSearchQuery(val || null)
+    onSearchChange?.(val)
+    router.push(val.trim() ? `/explore?q=${encodeURIComponent(val)}` : "/explore")
   }
 
   return (
@@ -58,6 +70,7 @@ export function DashboardHeader({
 
         {/* Notification Button */}
         <button
+          onClick={() => router.push("/notifications")}
           aria-label="Notifikasi"
           className="relative w-10 h-10 rounded-full bg-background hover:bg-primary hover:text-primary-foreground transition-colors duration-200 flex items-center justify-center text-foreground border border-border shadow-xs cursor-pointer"
         >
@@ -68,21 +81,26 @@ export function DashboardHeader({
 
       {/* Search Input Bar with Filter Button */}
       <div className="flex items-center gap-2 w-full">
-        <div className="relative flex-1 flex items-center">
+        <div
+          onClick={handleRedirectToExplore}
+          className="relative flex-1 flex items-center cursor-pointer group"
+        >
           <HugeiconsIcon
             icon={Search01Icon}
-            className="absolute left-3.5 w-4 h-4 text-muted-foreground pointer-events-none"
+            className="absolute left-3.5 w-4 h-4 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors"
           />
           <input
             type="text"
             value={searchQuery}
+            onFocus={handleRedirectToExplore}
             onChange={handleSearch}
             placeholder="Cari situs candi, tari, atau cerita rakyat..."
-            className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
+            className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium cursor-pointer"
           />
         </div>
 
         <button
+          onClick={handleRedirectToExplore}
           aria-label="Filter Pencarian"
           className="w-10 h-10 rounded-2xl bg-background hover:bg-primary hover:text-primary-foreground transition-colors duration-200 flex items-center justify-center text-foreground border border-border shrink-0 cursor-pointer"
         >

@@ -16,163 +16,14 @@ import {
   VolumeHighIcon,
   CheckmarkBadge01Icon,
   PencilEdit01Icon,
+  Download01Icon,
+  Tick01Icon,
 } from "@hugeicons/core-free-icons"
 import { WriteReviewDrawer } from "@/features/culture/components/write-review-drawer"
-
-export interface AudioSpot {
-  id: string
-  spotNumber: number
-  title: string
-  duration: string
-  description: string
-}
-
-export interface UserReview {
-  id: string
-  userName: string
-  userInitials: string
-  rating: number
-  date: string
-  comment: string
-  verified: boolean
-}
-
-export interface RatingBreakdown {
-  5: number
-  4: number
-  3: number
-  2: number
-  1: number
-}
-
-export interface CultureDetail {
-  id: string
-  title: string
-  subtitle: string
-  location: string
-  price: string
-  rating: number
-  reviewsCount: number
-  duration: string
-  image: string
-  description: string
-  audioSpots: AudioSpot[]
-  reviews: UserReview[]
-  ratingBreakdown: RatingBreakdown
-}
-
-const DETAIL_DATA: Record<string, CultureDetail> = {
-  prambanan: {
-    id: "prambanan",
-    title: "Candi Prambanan",
-    subtitle: "Kemegahan Arsitektur Trimurti & Legenda Roro Jonggrang",
-    location: "Sleman, D.I. Yogyakarta",
-    price: "Rp 25.000",
-    rating: 4.9,
-    reviewsCount: 1280,
-    duration: "45-60 min",
-    image: "/images/prambanan-hero.png",
-    description:
-      "Candi Prambanan merupakan kompleks candi Hindu terbesar di Indonesia yang dibangun pada abad ke-9 Masehi. Didedikasikan untuk Trimurti: Brahma (Pencipta), Shiva (Pemerelihara), dan Vishnu (Penyelamat). Nikmati kisah epik Ramayana yang terpahat indah pada relief candi.",
-    audioSpots: [
-      {
-        id: "spot-1",
-        spotNumber: 1,
-        title: "Pelataran & Gapura Utama",
-        duration: "07:30",
-        description: "Pengenalan sejarah pendirian dan tata letak kompleks candi.",
-      },
-      {
-        id: "spot-2",
-        spotNumber: 2,
-        title: "Candi Shiva & Relief Ramayana",
-        duration: "12:15",
-        description: "Penjelasan kisah epik Ramayana pada dinding galeri pertama.",
-      },
-      {
-        id: "spot-3",
-        spotNumber: 3,
-        title: "Arca Durga Mahisasuramardini",
-        duration: "08:45",
-        description: "Mitos Roro Jonggrang dan makna spiritual arca Dewi Durga.",
-      },
-      {
-        id: "spot-4",
-        spotNumber: 4,
-        title: "Pelataran Candi Brahma & Vishnu",
-        duration: "10:00",
-        description: "Filosfi pelestarian dan kehancuran dalam ajaran Trimurti.",
-      },
-    ],
-    ratingBreakdown: {
-      5: 88,
-      4: 9,
-      3: 2,
-      2: 1,
-      1: 0,
-    },
-    reviews: [
-      {
-        id: "r1",
-        userName: "Budi Santoso",
-        userInitials: "BS",
-        rating: 5,
-        date: "2 hari lalu",
-        comment:
-          "Suara narator sangat jernih dan penjelasan legenda Roro Jonggrang di Spot 3 bikin merinding. Terasa membawa pemandu wisata pribadi!",
-        verified: true,
-      },
-      {
-        id: "r2",
-        userName: "Dian Pratama",
-        userInitials: "DP",
-        rating: 5,
-        date: "1 minggu lalu",
-        comment:
-          "Sangat membantu saat keliling Candi Prambanan. Penjelasan relief Ramayana detail dan mudah dipahami anak-anak.",
-        verified: true,
-      },
-      {
-        id: "r3",
-        userName: "Maya Rosalia",
-        userInitials: "MR",
-        rating: 4,
-        date: "2 minggu lalu",
-        comment:
-          "Audio pasnya oke banget, koneksinya instan tanpa perlu unduh aplikasi tambahan.",
-        verified: true,
-      },
-      {
-        id: "r4",
-        userName: "Rian Hidayat",
-        userInitials: "RH",
-        rating: 5,
-        date: "3 minggu lalu",
-        comment:
-          "Pengalaman wisata sejarah terbaik! Sangat disarankan pakai earphone agar narasi lebih imersif.",
-        verified: true,
-      },
-      {
-        id: "r5",
-        userName: "Siti Rahmawati",
-        userInitials: "SR",
-        rating: 5,
-        date: "1 bulan lalu",
-        comment:
-          "Relief candi jadi jauh lebih hidup saat mendengarkan penjelasan audio guide ini.",
-        verified: true,
-      },
-    ],
-  },
-}
-
-const QUICK_TAGS = [
-  "Audio Jernih",
-  "Narasi Imersif",
-  "Alur Edukatif",
-  "Musik Etnik Pas",
-  "Sangat Direkomendasikan",
-]
+import { ActiveAudioBar, ActiveAudioTrack } from "@/features/dashboard/components/active-audio-bar"
+import { ToastBanner } from "@/features/shared/components/toast-banner"
+import { DETAIL_DATA, QUICK_TAGS, type UserReview } from "@/features/culture/data/culture-detail-data"
+import { useAudioPlayback } from "@/features/culture/hooks/use-audio-playback"
 
 export default function CultureDetailPage({
   params,
@@ -184,22 +35,37 @@ export default function CultureDetailPage({
   const detail = DETAIL_DATA[resolvedParams.id] || DETAIL_DATA.prambanan!
 
   const [isFav, setIsFav] = useState(false)
-  const [activeSpotId, setActiveSpotId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+
+  // Audio Playback Hook
+  const {
+    activeSpotId,
+    isPlayingSpot,
+    setIsPlayingSpot,
+    downloadedSpots,
+    downloadProgress,
+    handleTogglePlaySpot,
+    handleDownloadSpot,
+    dismissAudio,
+  } = useAudioPlayback()
 
   // Review Drawer State
   const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false)
   const [reviewsList, setReviewsList] = useState<UserReview[]>(detail.reviews)
 
-  const handleTogglePlaySpot = (spot: AudioSpot) => {
-    if (activeSpotId === spot.id) {
-      setActiveSpotId(null)
-    } else {
-      setActiveSpotId(spot.id)
-      setToast(`Memutar: ${spot.title}`)
-      setTimeout(() => setToast(null), 3000)
-    }
-  }
+  const activeSpot = detail.audioSpots.find((s) => s.id === activeSpotId)
+  const activeAudioTrack: ActiveAudioTrack | null = activeSpot
+    ? {
+        id: activeSpot.id,
+        title: detail.title,
+        spotName: `Spot ${activeSpot.spotNumber}: ${activeSpot.title}`,
+        location: detail.location,
+        progressPercent: isPlayingSpot ? 45 : 15,
+        currentTime: "02:15",
+        totalTime: activeSpot.duration,
+        image: detail.image,
+      }
+    : null
 
   const handleAddReview = (review: { rating: number; comment: string; tags: string[] }) => {
     const tagText = review.tags.length > 0 ? `[${review.tags.join(", ")}] ` : ""
@@ -225,14 +91,7 @@ export default function CultureDetailPage({
   return (
     <div className="flex flex-col min-h-screen bg-card text-foreground pb-12 relative">
       {/* Toast Notification Banner */}
-      {toast && (
-        <div className="fixed top-4 left-4 right-4 max-w-sm mx-auto z-50 p-3 bg-primary text-primary-foreground text-xs font-bold rounded-2xl flex items-center justify-between shadow-2xl animate-in fade-in slide-in-from-top-2">
-          <span>{toast}</span>
-          <button onClick={() => setToast(null)} className="opacity-70 hover:opacity-100 ml-2">
-            ✕
-          </button>
-        </div>
-      )}
+      <ToastBanner message={toast} onDismiss={() => setToast(null)} />
 
       {/* Hero Banner Header */}
       <div className="relative w-full h-[260px] sm:h-[300px]">
@@ -338,7 +197,11 @@ export default function CultureDetailPage({
 
           <div className="flex flex-col gap-2.5">
             {detail.audioSpots.map((spot) => {
-              const isPlayingThis = activeSpotId === spot.id
+              const isPlayingThis = activeSpotId === spot.id && isPlayingSpot
+              const isDownloaded = !!downloadedSpots[spot.id]
+              const isDownloading = downloadProgress[spot.id] !== undefined
+              const currentProgress = downloadProgress[spot.id] || 0
+
               return (
                 <div
                   key={spot.id}
@@ -383,7 +246,72 @@ export default function CultureDetailPage({
                       {spot.duration}
                     </span>
 
+                    {/* Download Audio Button Icon / Circular Progress */}
+                    {isDownloading ? (
+                      <div
+                        className="relative w-8 h-8 flex items-center justify-center shrink-0 cursor-wait"
+                        title={`Mengunduh ${currentProgress}%`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg className="w-8 h-8 -rotate-90 transform" viewBox="0 0 36 36">
+                          <path
+                            className={isPlayingThis ? "text-primary-foreground/30" : "text-muted-foreground/30"}
+                            strokeWidth="3"
+                            stroke="currentColor"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path
+                            className={`transition-all duration-200 ease-out ${
+                              isPlayingThis ? "text-primary-foreground" : "text-primary"
+                            }`}
+                            strokeDasharray="100, 100"
+                            strokeDashoffset={100 - currentProgress}
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <span
+                          className={`absolute text-[8px] font-black ${
+                            isPlayingThis ? "text-primary-foreground" : "text-primary"
+                          }`}
+                        >
+                          {currentProgress}%
+                        </span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDownloadSpot(e, spot)}
+                        aria-label="Unduh Audio Spot"
+                        className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all ${
+                          isPlayingThis
+                            ? isDownloaded
+                              ? "bg-emerald-500 text-white"
+                              : "bg-card/20 text-primary-foreground hover:bg-card/40"
+                            : isDownloaded
+                              ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30"
+                              : "bg-secondary text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                        title={isDownloaded ? "Telah Diunduh (Akses Offline)" : "Unduh Audio Offline"}
+                      >
+                        <HugeiconsIcon
+                          icon={isDownloaded ? Tick01Icon : Download01Icon}
+                          className="w-3.5 h-3.5"
+                        />
+                      </button>
+                    )}
+
+                    {/* Play Audio Button Icon */}
                     <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleTogglePlaySpot(spot)
+                      }}
                       aria-label="Putar Audio Spot"
                       className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-transform ${
                         isPlayingThis
@@ -530,6 +458,17 @@ export default function CultureDetailPage({
         destinationLocation={detail.location}
         destinationImage={detail.image}
       />
+
+      {/* FLOATING ACTIVE AUDIO PLAYER BAR */}
+      {activeAudioTrack && (
+        <ActiveAudioBar
+          track={activeAudioTrack}
+          isPlaying={isPlayingSpot}
+          onTogglePlay={() => setIsPlayingSpot(!isPlayingSpot)}
+          onDismiss={dismissAudio}
+          className="bottom-[76px]"
+        />
+      )}
     </div>
   )
 }

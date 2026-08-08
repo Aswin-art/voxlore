@@ -101,20 +101,12 @@ export function DestinationDetailSheet({
 
         {/* Detail Content Container (Overlapping Header) */}
         <div className="relative -mt-6 bg-[#FDFBF7] rounded-t-3xl p-5 sm:p-7 flex-1 flex flex-col justify-between gap-6 shadow-xl">
-          {/* Title & Price Line */}
+          {/* Title Line */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-start justify-between gap-3">
               <h1 className="text-2xl sm:text-3xl font-black text-[#1E2229] leading-tight">
                 {destination.title}
               </h1>
-              <div className="text-right shrink-0">
-                <span className="text-xl sm:text-2xl font-black text-blue-600">
-                  {destination.price}
-                </span>
-                <span className="text-[10px] font-semibold text-muted-foreground block">
-                  / Full Pass
-                </span>
-              </div>
             </div>
 
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
@@ -249,7 +241,7 @@ export function DestinationDetailSheet({
             className="w-full py-3.5 px-6 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
           >
             <HugeiconsIcon icon={HeadphonesIcon} className="w-5 h-5" />
-            <span>Beli Destination Pass ({destination.price})</span>
+            <span>Dengarkan Audio Guide</span>
           </button>
         </div>
       </SheetContent>

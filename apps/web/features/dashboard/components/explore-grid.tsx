@@ -22,7 +22,7 @@ const CATEGORIES: CategoryItem[] = [
   {
     id: "explore-festivals",
     label: "Jelajahi Festival",
-    description: "Kalender ritual, pentas & acara adat",
+    description: "Atur perjalanan untuk ritual, pentas & acara adat",
     icon: Calendar01Icon,
     isPrimary: false,
   },

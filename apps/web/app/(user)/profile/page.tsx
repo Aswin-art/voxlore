@@ -1,13 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserIcon,
   CheckmarkBadge01Icon,
-  HeadphonesIcon,
-  Clock01Icon,
-  Download01Icon,
   Globe02Icon,
   Logout01Icon,
   ArrowRight01Icon,
@@ -15,6 +13,11 @@ import {
   ShieldKeyIcon,
   CheckIcon,
   Ticket01Icon,
+  Download01Icon,
+  Bookmark01Icon,
+  FavouriteIcon,
+  Location01Icon,
+  Calendar01Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Drawer,
@@ -22,7 +25,6 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerClose,
 } from "@workspace/ui/components/drawer"
 
 export interface LanguageOption {
@@ -40,6 +42,7 @@ const LANGUAGES: LanguageOption[] = [
 ]
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
   const [isLanguageDrawerOpen, setIsLanguageDrawerOpen] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(LANGUAGES[0]!)
@@ -48,10 +51,10 @@ export default function ProfilePage() {
     name: "Aswin Pratama",
     email: "aswin@voxlore.id",
     initials: "AP",
-    subscriptionPlan: "Voxlore Full Pass",
-    subscriptionStatus: "Aktif hingga Nov 2026",
-    audioListened: 34,
-    totalDuration: "4.5 Jam",
+    subscriptionPlan: "Heritage Pass",
+    subscriptionStatus: "Aktif • Akses Penuh",
+    destinationsVisited: 14,
+    plansCreated: 5,
   }
 
   const handleAction = (message: string) => {
@@ -83,56 +86,102 @@ export default function ProfilePage() {
           Profil Saya
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Atur informasi akun dan sesuaikan pengalaman audio budayamu
+          Atur informasi akun dan sesuaikan pengalaman jelajah budayamu
         </p>
       </div>
 
-      {/* User Hero Card */}
-      <div className="p-5 rounded-3xl bg-gradient-to-br from-primary/10 via-background to-background border border-border flex flex-col gap-4 shadow-2xs relative overflow-hidden">
-        <div className="flex items-center gap-4">
+      {/* Dark Styled User Hero Card */}
+      <div className="p-5 rounded-3xl bg-slate-950 text-white border border-slate-800 flex flex-col gap-4 shadow-xl relative overflow-hidden">
+        {/* Subtle glow ambient background */}
+        <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center gap-4 relative z-10">
           <div className="relative">
             <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black text-xl shadow-md border border-primary/30">
               {userProfile.initials}
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-card rounded-full p-0.5 shadow-xs">
-              <HugeiconsIcon icon={CheckmarkBadge01Icon} className="w-4 h-4 text-blue-500 fill-blue-500/10" />
+            <div className="absolute -bottom-1 -right-1 bg-slate-950 rounded-full p-0.5 shadow-xs">
+              <HugeiconsIcon icon={CheckmarkBadge01Icon} className="w-4 h-4 text-amber-400 fill-amber-400/20" />
             </div>
           </div>
 
           <div className="flex flex-col min-w-0">
-            <h2 className="text-base font-extrabold text-foreground tracking-tight truncate">
+            <h2 className="text-base font-black text-white tracking-tight truncate">
               {userProfile.name}
             </h2>
-            <span className="text-xs text-muted-foreground truncate">{userProfile.email}</span>
+            <span className="text-xs text-slate-400 font-semibold truncate mt-0.5">{userProfile.email}</span>
           </div>
         </div>
 
-        {/* Stats & Subscription Plan Info Card Grid */}
-        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60">
+        {/* High-Impact Stats & Subscription Plan Info Card Grid (Dark Theme) */}
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80 relative z-10">
           {/* Card 1: Subscription Plan Info */}
-          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-card border border-border text-center">
-            <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4 text-amber-500 mb-0.5" />
-            <span className="text-xs font-black text-foreground truncate w-full">
+          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
+            <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4 text-amber-400 mb-0.5" />
+            <span className="text-xs font-black text-amber-300 truncate w-full">
               {userProfile.subscriptionPlan}
             </span>
-            <span className="text-[9px] text-muted-foreground font-bold truncate w-full">
+            <span className="text-[9px] text-slate-400 font-extrabold truncate w-full">
               {userProfile.subscriptionStatus}
             </span>
           </div>
 
-          {/* Card 2: Audio Listened */}
-          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-card border border-border text-center">
-            <HugeiconsIcon icon={HeadphonesIcon} className="w-4 h-4 text-primary mb-0.5" />
-            <span className="text-sm font-black text-foreground">{userProfile.audioListened}</span>
-            <span className="text-[9px] text-muted-foreground font-bold">Audio Didengar</span>
+          {/* Card 2: Destinasi Terjelajah */}
+          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
+            <HugeiconsIcon icon={Location01Icon} className="w-4 h-4 text-emerald-400 mb-0.5" />
+            <span className="text-sm font-black text-emerald-300">{userProfile.destinationsVisited}</span>
+            <span className="text-[9px] text-slate-400 font-extrabold">Destinasi</span>
           </div>
 
-          {/* Card 3: Total Duration */}
-          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-card border border-border text-center">
-            <HugeiconsIcon icon={Clock01Icon} className="w-4 h-4 text-blue-500 mb-0.5" />
-            <span className="text-sm font-black text-foreground">{userProfile.totalDuration}</span>
-            <span className="text-[9px] text-muted-foreground font-bold">Total Waktu</span>
+          {/* Card 3: Plan Liburan */}
+          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
+            <HugeiconsIcon icon={Calendar01Icon} className="w-4 h-4 text-sky-400 mb-0.5" />
+            <span className="text-sm font-black text-sky-300">{userProfile.plansCreated}</span>
+            <span className="text-[9px] text-slate-400 font-extrabold">Plan Liburan</span>
           </div>
+        </div>
+      </div>
+
+      {/* Keanggotaan & Favorit Group */}
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-extrabold text-muted-foreground tracking-wider uppercase px-1">
+          Layanan &amp; Keanggotaan
+        </span>
+
+        <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden shadow-2xs">
+          {/* Plan Subscribe Menu Item */}
+          <button
+            onClick={() => router.push("/packages")}
+            className="w-full p-4 flex items-center justify-between hover:bg-background/80 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-extrabold text-foreground">Paket Berlangganan</span>
+                <span className="text-[10px] text-muted-foreground">Kelola paket Heritage Pass &amp; perbarui langganan</span>
+              </div>
+            </div>
+            <HugeiconsIcon icon={ArrowRight01Icon} className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          {/* Favorit Saya Menu Item */}
+          <button
+            onClick={() => router.push("/favorites")}
+            className="w-full p-4 flex items-center justify-between hover:bg-background/80 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                <HugeiconsIcon icon={FavouriteIcon} className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-extrabold text-foreground">Favorit Saya</span>
+                <span className="text-[10px] text-muted-foreground">Koleksi tempat sakral &amp; audio tersimpan</span>
+              </div>
+            </div>
+            <HugeiconsIcon icon={ArrowRight01Icon} className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </div>
 
@@ -144,7 +193,7 @@ export default function ProfilePage() {
 
         <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden shadow-2xs">
           <button
-            onClick={() => handleAction("Fitur Edit Profil akan segera hadir...")}
+            onClick={() => router.push("/profile/edit")}
             className="w-full p-4 flex items-center justify-between hover:bg-background/80 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3">
@@ -160,7 +209,7 @@ export default function ProfilePage() {
           </button>
 
           <button
-            onClick={() => handleAction("Buka Pengunduhan Offline...")}
+            onClick={() => router.push("/downloads")}
             className="w-full p-4 flex items-center justify-between hover:bg-background/80 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3">
@@ -203,7 +252,7 @@ export default function ProfilePage() {
 
         <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden shadow-2xs">
           <button
-            onClick={() => handleAction("Buka Pengaturan Keamanan...")}
+            onClick={() => router.push("/security")}
             className="w-full p-4 flex items-center justify-between hover:bg-background/80 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3">
@@ -219,7 +268,7 @@ export default function ProfilePage() {
           </button>
 
           <button
-            onClick={() => handleAction("Buka Pusat Bantuan Voxlore...")}
+            onClick={() => router.push("/help")}
             className="w-full p-4 flex items-center justify-between hover:bg-background/80 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3">
@@ -252,9 +301,8 @@ export default function ProfilePage() {
         showSwipeHandle={true}
       >
         <DrawerContent className="max-h-[80vh] h-auto w-full sm:max-w-md mx-auto rounded-t-3xl border-t border-border bg-card p-0 flex flex-col justify-between">
-          {/* Header Bar with Back Button */}
+          {/* Header Bar with Title */}
           <DrawerHeader className="p-4 border-b border-border flex items-center gap-3 shrink-0 text-left">
-
             <div className="flex flex-col min-w-0">
               <DrawerTitle className="text-base font-black text-foreground tracking-tight">
                 Pilih Bahasa Audio
