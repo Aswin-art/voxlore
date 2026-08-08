@@ -24,7 +24,7 @@ export const ActionButton = React.forwardRef<
     >
       <span
         className={cn(
-          "h-12 px-6 rounded-md font-bold text-sm shadow-xl transition-all flex items-center justify-center",
+          "h-12 px-6 rounded-md font-bold text-sm shadow-xl transition-all flex items-center justify-center flex-1",
           variant === "white" && "bg-white text-[#1E2229] group-hover:bg-white/90",
           variant === "dark" && "bg-[#1E2229] text-white group-hover:bg-[#1E2229]/90 border border-white/10"
         )}

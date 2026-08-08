@@ -4,7 +4,6 @@ import * as React from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { ProgressProvider } from "@bprogress/next/app"
-import { ThemeProvider } from "@/components/theme-provider"
 
 function makeQueryClient() {
   return new QueryClient({
@@ -41,7 +40,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           options={{ showSpinner: false }}
           shallowRouting
         >
-          <ThemeProvider>{children}</ThemeProvider>
+          {children}
         </ProgressProvider>
       </NuqsAdapter>
     </QueryClientProvider>

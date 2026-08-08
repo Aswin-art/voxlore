@@ -16,16 +16,31 @@ import {
 } from "@workspace/ui/components/sheet"
 import { ActionButton } from "@workspace/ui/components/action-button"
 
-export function Navbar() {
+interface NavbarProps {
+  theme?: "dark" | "light"
+}
+
+export function Navbar({ theme: forcedTheme }: NavbarProps = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeNav, setActiveNav] = useState("BERANDA")
   const [currentTheme, setCurrentTheme] = useState<"dark" | "light">("dark")
 
   // Observe section theme attribute changes on scroll
   useEffect(() => {
+    if (forcedTheme) return
+
+    // Initial check on mount
+    const initialElement = document.querySelector("[data-nav-theme]")
+    if (initialElement) {
+      const theme = initialElement.getAttribute("data-nav-theme")
+      if (theme === "dark" || theme === "light") {
+        setCurrentTheme(theme)
+      }
+    }
+
     const observerOptions = {
       root: null,
-      rootMargin: "-10% 0px -75% 0px",
+      rootMargin: "0px 0px -50% 0px",
       threshold: 0,
     }
 
@@ -45,15 +60,16 @@ export function Navbar() {
     sections.forEach((sec) => observer.observe(sec))
 
     return () => observer.disconnect()
-  }, [])
+  }, [forcedTheme])
 
-  const isDarkHeader = isOpen || currentTheme === "dark"
+  const activeTheme = forcedTheme ?? currentTheme
+  const isDarkHeader = isOpen || activeTheme === "dark"
 
   const mainLinks = [
-    { name: "BERANDA", href: "#" },
-    { name: "PHILOSOPHY", href: "#about-section" },
-    { name: "CARA KERJA", href: "#how-it-works-section" },
-    { name: "DESTINASI BUDAYA", href: "#culture-list-section" },
+    { name: "BERANDA", href: "/#" },
+    { name: "PHILOSOPHY", href: "/#about-section" },
+    { name: "CARA KERJA", href: "/#how-it-works-section" },
+    { name: "DESTINASI BUDAYA", href: "/#culture-list-section" },
   ]
 
   return (
