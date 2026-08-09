@@ -5,12 +5,6 @@
  * `admin-catalog.ts`, sehingga jumlah/nama/lokasi/gambar selalu sinkron.
  * Backend admin API masih tersedia untuk operasi tulis (CRUD) masa depan.
  */
-import {
-  getAdminStats,
-  getAdminDestinations,
-  getAdminEvents,
-} from "./admin-catalog"
-
 export interface AdminStatCard {
   title: string
   value: string
@@ -65,6 +59,7 @@ export interface AdminReview {
 async function adminRequest<T>(path: string): Promise<T> {
   const res = await fetch(`/api/admin${path}`, {
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
   })
 
   if (!res.ok) {
@@ -74,24 +69,16 @@ async function adminRequest<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-/** Stats dihitung dari katalog lib/data (sinkron dgn explore). */
-export async function fetchAdminStats(): Promise<AdminStatsResponse> {
-  await delay(150)
-  return getAdminStats()
+export function fetchAdminStats(): Promise<AdminStatsResponse> {
+  return adminRequest<AdminStatsResponse>("/stats")
 }
 
-/** Destinasi dari katalog lib/data (hanya yang punya foto asli). */
-export async function fetchAdminDestinations(): Promise<AdminDestination[]> {
-  await delay(150)
-  return getAdminDestinations()
+export function fetchAdminDestinations(): Promise<AdminDestination[]> {
+  return adminRequest<AdminDestination[]>("/destinations")
 }
 
-/** Event dari katalog lib/data. */
-export async function fetchAdminEvents(): Promise<AdminCulturalEvent[]> {
-  await delay(150)
-  return getAdminEvents()
+export function fetchAdminEvents(): Promise<AdminCulturalEvent[]> {
+  return adminRequest<AdminCulturalEvent[]>("/events")
 }
 
 export function fetchAdminReviews(): Promise<AdminReview[]> {

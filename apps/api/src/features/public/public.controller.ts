@@ -12,7 +12,7 @@ export class PublicController {
     @Query('region') region?: string,
     @Query('category') category?: string,
     @Query('search') search?: string,
-  ): Destination[] {
+  ): Promise<Destination[]> {
     return this.publicService.getAllDestinations({
       province,
       region,
@@ -22,7 +22,7 @@ export class PublicController {
   }
 
   @Get('destinations/:id')
-  getDestinationById(@Param('id') id: string): Destination {
+  getDestinationById(@Param('id') id: string): Promise<Destination> {
     return this.publicService.getDestinationById(id);
   }
 
@@ -34,7 +34,7 @@ export class PublicController {
     @Query('search') search?: string,
     @Query('start') start?: string,
     @Query('end') end?: string,
-  ): CulturalFestival[] {
+  ): Promise<CulturalFestival[]> {
     return this.publicService.getFestivals({
       province,
       region,
@@ -46,12 +46,12 @@ export class PublicController {
   }
 
   @Get('festivals/:id')
-  getFestivalById(@Param('id') id: string): CulturalFestival {
+  getFestivalById(@Param('id') id: string): Promise<CulturalFestival> {
     return this.publicService.getFestivalById(id);
   }
 
   @Get('provinces')
-  getProvinces(): string[] {
+  getProvinces(): Promise<string[]> {
     return this.publicService.getProvinces();
   }
 }

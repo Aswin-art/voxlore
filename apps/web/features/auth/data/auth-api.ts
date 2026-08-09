@@ -21,6 +21,7 @@ async function authRequest<T>(
   const res = await fetch(`/api${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(values),
   })
 

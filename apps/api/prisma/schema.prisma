@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  MEMBER
+  SUPER_ADMIN
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String           @id @default(uuid()) @db.Uuid
+  name           String
+  email          String           @unique
+  passwordHash   String
+  role           UserRole         @default(MEMBER)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  reviews        Review[]
+  vacationItems  VacationPlanItem[]
+
+  @@index([role])
+}
+
+model Destination {
+  id          String   @id
+  title       String
+  city        String
+  province    String
+  location    String
+  region      String
+  category    String
+  description String
+  image       String
+  price       String
+  rating      Float
+  duration    String
+  listeners   String
+  isPopular   Boolean  @default(false)
+  audioCount  Int      @default(0)
+  status      String   @default("Aktif")
+  passPrice   String   @default("Rp 0")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  reviews     Review[]
+
+  @@index([province])
+  @@index([region])
+  @@index([category])
+}
+
+model Festival {
+  id          String   @id
+  title       String
+  province    String
+  region      String
+  city        String
+  location    String
+  startDate   String
+  endDate     String
+  date        String
+  monthBadge  String
+  dayBadge    String
+  description String
+  image       String
+  videoUrl    String?
+  type        String
+  isSponsored Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([province])
+  @@index([region])
+  @@index([type])
+  @@index([startDate, endDate])
+}
+
+model Review {
+  id            String       @id @default(uuid()) @db.Uuid
+  userId        String?      @db.Uuid
+  destinationId String?
+  userName      String
+  destination   String
+  rating        Int
+  comment       String
+  status        ReviewStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  destinationRef Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([destinationId])
+}
+
+model VacationPlanItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  itemId        String
+  itemType      String
+  title         String
+  location      String
+  date          String?
+  image         String?
+  addedAt       DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId, addedAt])
+}
+
