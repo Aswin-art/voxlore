@@ -43,3 +43,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# testing / QA artifacts (do not commit)
+test-results/
+playwright-report/
+qa_report/
+qa-report*.json
+qa_script.js
+run-qa*.js
+*.playwright-mcp/
+.e2e/
+
+# tool / agent artifacts
+.agents/
+.understand-anything/
+.opencode/
+.skills/
