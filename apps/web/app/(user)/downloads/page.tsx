@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -15,6 +15,8 @@ import {
   Location01Icon,
   PauseIcon,
 } from "@hugeicons/core-free-icons"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export interface DownloadedAudioSpot {
   id: string
@@ -80,7 +82,38 @@ const INITIAL_AUDIO_TRACKS: DownloadedAudioSpot[] = [
   },
 ]
 
+function DownloadsPageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-4 w-full">
+        <Skeleton className="h-16 w-full rounded-3xl" />
+        <Skeleton className="h-11 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
+
 export default function DownloadsPage() {
+  return (
+    <Suspense fallback={<DownloadsPageSkeleton />}>
+      <ErrorBoundary label="Audio Luring">
+        <DownloadsPageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function DownloadsPageContent() {
   const router = useRouter()
   const [tracks, setTracks] = useState<DownloadedAudioSpot[]>(INITIAL_AUDIO_TRACKS)
   const [searchQuery, setSearchQuery] = useState("")

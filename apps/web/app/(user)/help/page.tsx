@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -12,6 +12,8 @@ import {
   ArrowUp01Icon,
   Chat01Icon,
 } from "@hugeicons/core-free-icons"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export interface FaqItem {
   id: string
@@ -65,7 +67,38 @@ const FAQ_ITEMS: FaqItem[] = [
   },
 ]
 
+function HelpCenterPageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-3 w-52" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-5 w-full">
+        <Skeleton className="h-11 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-10 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
+
 export default function HelpCenterPage() {
+  return (
+    <Suspense fallback={<HelpCenterPageSkeleton />}>
+      <ErrorBoundary label="Pusat Bantuan & FAQ">
+        <HelpCenterPageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function HelpCenterPageContent() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [openFaqId, setOpenFaqId] = useState<string | null>("faq-1")

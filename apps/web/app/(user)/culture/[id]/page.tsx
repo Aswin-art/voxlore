@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, use } from "react"
+import { Suspense, useState, useEffect, use } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -18,12 +18,15 @@ import {
   PencilEdit01Icon,
   Download01Icon,
   Tick01Icon,
+  Search01Icon,
 } from "@hugeicons/core-free-icons"
 import { WriteReviewDrawer } from "@/features/culture/components/write-review-drawer"
 import { ActiveAudioBar, ActiveAudioTrack } from "@/features/dashboard/components/active-audio-bar"
 import { ToastBanner } from "@/features/shared/components/toast-banner"
-import { DETAIL_DATA, QUICK_TAGS, type UserReview } from "@/features/culture/data/culture-detail-data"
+import type { UserReview } from "@/features/culture/data/culture-detail-data"
+import { useDestinationDetail } from "@/features/culture/hooks/use-destination-detail"
 import { useAudioPlayback } from "@/features/culture/hooks/use-audio-playback"
+import ErrorBoundary from "@/components/error-boundary"
 
 export default function CultureDetailPage({
   params,
@@ -31,8 +34,133 @@ export default function CultureDetailPage({
   params: Promise<{ id: string }>
 }) {
   const resolvedParams = use(params)
+
+  return (
+    <Suspense fallback={<CultureDetailSkeleton />}>
+      <ErrorBoundary label="Detail Budaya">
+        <CultureDetailContent id={resolvedParams.id} />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+/** Skeleton loading untuk halaman detail budaya. */
+export function CultureDetailSkeleton() {
+  return (
+    <div className="flex flex-col min-h-screen bg-card text-foreground pb-12 relative">
+      {/* Hero Skeleton */}
+      <div className="relative w-full h-[260px] sm:h-[300px] bg-muted animate-pulse">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40" />
+        <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10">
+          <div className="w-10 h-10 rounded-full bg-black/40 border border-white/20" />
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-black/40 border border-white/20" />
+            <div className="w-10 h-10 rounded-full bg-black/40 border border-white/20" />
+          </div>
+        </div>
+        <div className="absolute bottom-4 inset-x-4 flex flex-col gap-2 z-10">
+          <div className="flex items-center gap-2">
+            <div className="w-24 h-5 rounded-full bg-black/40 border border-white/20" />
+            <div className="w-20 h-5 rounded-full bg-black/40 border border-white/20" />
+          </div>
+          <div className="w-2/3 h-6 rounded-lg bg-black/40" />
+          <div className="w-1/2 h-4 rounded-lg bg-black/40" />
+        </div>
+      </div>
+
+      {/* Body Skeleton */}
+      <div className="p-4 sm:p-5 flex flex-col gap-5">
+        {/* Rating & Stats Bar */}
+        <div className="p-3.5 rounded-2xl bg-background border border-muted flex items-center justify-between">
+          <div className="w-32 h-4 rounded-lg bg-muted animate-pulse" />
+          <div className="w-24 h-4 rounded-lg bg-muted animate-pulse" />
+        </div>
+
+        {/* Description */}
+        <div className="flex flex-col gap-2">
+          <div className="w-40 h-4 rounded-lg bg-muted animate-pulse" />
+          <div className="w-full h-3 rounded-lg bg-muted animate-pulse" />
+          <div className="w-full h-3 rounded-lg bg-muted animate-pulse" />
+          <div className="w-3/4 h-3 rounded-lg bg-muted animate-pulse" />
+        </div>
+
+        {/* Audio Spot List */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="w-44 h-4 rounded-lg bg-muted animate-pulse" />
+            <div className="w-20 h-3 rounded-lg bg-muted animate-pulse" />
+          </div>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-3.5 rounded-2xl border border-muted flex items-center justify-between gap-3 animate-pulse"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-muted" />
+                <div className="flex flex-col gap-1.5 min-w-0">
+                  <div className="w-40 h-3 rounded-lg bg-muted" />
+                  <div className="w-56 h-2.5 rounded-lg bg-muted" />
+                </div>
+              </div>
+              <div className="w-16 h-3 rounded-lg bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Fallback error untuk halaman detail budaya dengan tombol retry. */
+function CultureDetailErrorFallback({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-card text-foreground items-center justify-center px-6">
+      <div className="w-full rounded-3xl border border-border bg-background p-8 text-center flex flex-col items-center justify-center gap-3">
+        <HugeiconsIcon icon={Search01Icon} className="w-8 h-8 text-muted-foreground/40" />
+        <span className="text-xs font-extrabold text-foreground">
+          Gagal memuat detail budaya
+        </span>
+        <span className="text-[11px] text-muted-foreground">
+          Terjadi kendala saat mengambil data destinasi. Silakan coba lagi.
+        </span>
+        <button
+          onClick={onRetry}
+          className="mt-1 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** State not-found ketika id destinasi tidak dikenal. */
+function CultureDetailNotFound() {
   const router = useRouter()
-  const detail = DETAIL_DATA[resolvedParams.id] || DETAIL_DATA.prambanan!
+  return (
+    <div className="flex flex-col min-h-screen bg-card text-foreground items-center justify-center px-6">
+      <div className="w-full rounded-3xl border border-border bg-background p-8 text-center flex flex-col items-center justify-center gap-3">
+        <HugeiconsIcon icon={Search01Icon} className="w-8 h-8 text-muted-foreground/40" />
+        <span className="text-xs font-extrabold text-foreground">
+          Destinasi tidak ditemukan
+        </span>
+        <span className="text-[11px] text-muted-foreground">
+          Data destinasi yang Anda cari tidak tersedia.
+        </span>
+        <button
+          onClick={() => router.back()}
+          className="mt-1 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
+        >
+          Kembali
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CultureDetailContent({ id }: { id: string }) {
+  const router = useRouter()
+  const { data: detail, isPending, isError, error, refetch } = useDestinationDetail(id)
 
   const [isFav, setIsFav] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -51,7 +179,26 @@ export default function CultureDetailPage({
 
   // Review Drawer State
   const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false)
-  const [reviewsList, setReviewsList] = useState<UserReview[]>(detail.reviews)
+  const [reviewsList, setReviewsList] = useState<UserReview[]>([])
+
+  // Sinkronkan ulasan lokal dengan data detail (berganti saat id / data berubah)
+  useEffect(() => {
+    if (detail) {
+      setReviewsList(detail.reviews)
+    }
+  }, [detail])
+
+  if (isPending) {
+    return <CultureDetailSkeleton />
+  }
+
+  if (isError || !detail) {
+    const isNotFound = error?.message === "Tidak ditemukan"
+    if (isNotFound && !isPending) {
+      return <CultureDetailNotFound />
+    }
+    return <CultureDetailErrorFallback onRetry={() => refetch()} />
+  }
 
   const activeSpot = detail.audioSpots.find((s) => s.id === activeSpotId)
   const activeAudioTrack: ActiveAudioTrack | null = activeSpot
@@ -139,7 +286,7 @@ export default function CultureDetailPage({
         <div className="absolute bottom-4 inset-x-4 flex flex-col gap-1 text-white z-10">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-extrabold backdrop-blur-xs">
-              Situs Cagar Budaya
+              {detail.subtitle}
             </span>
             <div className="flex items-center gap-1 bg-black/50 px-2 py-0.5 rounded-full text-[10px] font-bold">
               <HugeiconsIcon icon={Clock01Icon} className="w-3 h-3 text-amber-400" />

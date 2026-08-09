@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, Suspense } from "react"
+import { useState, Suspense } from "react"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -14,9 +15,14 @@ import {
   PencilEdit01Icon,
   PlayCircleIcon,
 } from "@hugeicons/core-free-icons"
-import { EVENTS_CATALOG, FestivalEvent, RecentPlanItem, PROVINCES } from "../data"
+import { useFestivals } from "@/features/events/hooks/use-festivals"
+import { useProvinces } from "@/features/shared/hooks/use-provinces"
+import type { TravelPlanFilter } from "@/features/events/types"
+import { festivalTypeLabel } from "@/features/events/types"
+import type { RecentPlanItem } from "@/features/dashboard/components/recent-plans-section"
 import { SearchableSelect } from "@/features/shared/components/searchable-select"
-
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 function SelectFestivalPlanContent() {
   const router = useRouter()
@@ -33,29 +39,21 @@ function SelectFestivalPlanContent() {
 
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFestivalIds, setSelectedFestivalIds] = useState<Record<string, boolean>>({})
-  const [selectedTrailerEvent, setSelectedTrailerEvent] = useState<FestivalEvent | null>(null)
+  const [selectedTrailerEvent, setSelectedTrailerEvent] = useState<
+    NonNullable<ReturnType<typeof useFestivals>["festivals"]>[number] | null
+  >(null)
 
-  // Filter festivals based on province, date overlap, and name search
-  const filteredEvents = useMemo(() => {
-    return EVENTS_CATALOG.filter((evt) => {
-      const matchesSearch =
-        evt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        evt.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        evt.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filter: TravelPlanFilter = {
+    search: searchQuery,
+    province: selectedProvince,
+    start: vacationStart,
+    end: vacationEnd,
+  }
 
-      const matchesProvince =
-        selectedProvince === "Semua" || evt.province === selectedProvince
-
-      let matchesDate = true
-      if (vacationStart && vacationEnd) {
-        matchesDate = evt.startDateStr <= vacationEnd && evt.endDateStr >= vacationStart
-      } else if (vacationStart) {
-        matchesDate = evt.endDateStr >= vacationStart
-      }
-
-      return matchesSearch && matchesProvince && matchesDate
-    })
-  }, [searchQuery, selectedProvince, vacationStart, vacationEnd])
+  const provincesQuery = useProvinces()
+  const provinceOptions = provincesQuery.data
+    ? ["Semua", ...provincesQuery.data.map((p) => p.name)]
+    : ["Semua"]
 
   // Silent toggle selection without triggering toast notification
   const toggleSelectFestival = (id: string) => {
@@ -65,21 +63,20 @@ function SelectFestivalPlanContent() {
     }))
   }
 
-  const selectedEvents = EVENTS_CATALOG.filter((e) => selectedFestivalIds[e.id])
-
-  const handleSavePlan = () => {
+  const handleSavePlan = (events: ReturnType<typeof useFestivals>["festivals"]) => {
     const provinceName = selectedProvince !== "Semua" ? selectedProvince : "Seluruh Indonesia"
     const dateStr = vacationStart && vacationEnd ? `${vacationStart} s/d ${vacationEnd}` : "Tanggal Terjadwal"
-    const fallbackEvent = filteredEvents[0]
+    const fallbackEvent = events?.[0]
+    const chosenEvents = (events ?? []).filter((e) => selectedFestivalIds[e.id])
 
     const newPlan: RecentPlanItem = {
       id: `plan-${Date.now()}`,
       title: `Liburan Budaya ${provinceName}`,
       province: provinceName,
       dateRangeStr: dateStr,
-      eventsCount: selectedEvents.length,
+      eventsCount: chosenEvents.length,
       createdDate: "Baru saja",
-      events: selectedEvents.length > 0 ? selectedEvents : (fallbackEvent ? [fallbackEvent] : []),
+      events: chosenEvents.length > 0 ? chosenEvents : (fallbackEvent ? [fallbackEvent] : []),
     }
 
     try {
@@ -210,15 +207,25 @@ function SelectFestivalPlanContent() {
               </div>
             </div>
 
-            <SearchableSelect
-              label="Provinsi Tujuan"
-              icon={Location01Icon}
-              options={PROVINCES}
-              value={selectedProvince}
-              onChange={(val) => setSelectedProvince(val || "Semua")}
-              placeholder="Semua Provinsi"
-              searchPlaceholder="Cari provinsi..."
-            />
+            {provincesQuery.isLoading ? (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <HugeiconsIcon icon={Location01Icon} className="w-3.5 h-3.5 text-primary" />
+                  <span>Provinsi Tujuan</span>
+                </label>
+                <Skeleton className="h-10 w-full rounded-2xl" />
+              </div>
+            ) : (
+              <SearchableSelect
+                label="Provinsi Tujuan"
+                icon={Location01Icon}
+                options={provinceOptions}
+                value={selectedProvince}
+                onChange={(val) => setSelectedProvince(val || "Semua")}
+                placeholder="Semua Provinsi"
+                searchPlaceholder="Cari provinsi..."
+              />
+            )}
           </div>
         )}
       </div>
@@ -247,108 +254,15 @@ function SelectFestivalPlanContent() {
       </div>
 
       {/* Festival List */}
-      <div className="flex flex-col gap-3.5">
-        <div className="flex items-center justify-between px-0.5">
-          <span className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-            Festival Berlangsung ({filteredEvents.length})
-          </span>
-          <span className="text-[11px] text-muted-foreground font-semibold">
-            {selectedEvents.length} Terpilih
-          </span>
-        </div>
-
-        {filteredEvents.length === 0 ? (
-          <div className="p-8 text-center bg-card rounded-3xl border border-border flex flex-col items-center justify-center gap-2">
-            <HugeiconsIcon icon={Search01Icon} className="w-8 h-8 text-muted-foreground/40" />
-            <span className="text-xs font-extrabold text-foreground">Tidak ada festival ditemukan</span>
-            <span className="text-[11px] text-muted-foreground">
-              Tidak ada perayaan budaya pada rentang tanggal &amp; lokasi ini. Coba sesuaikan kata kunci pencarian.
-            </span>
-          </div>
-        ) : (
-          filteredEvents.map((evt) => {
-            const isSelected = !!selectedFestivalIds[evt.id]
-
-            return (
-              <div
-                key={evt.id}
-                onClick={() => toggleSelectFestival(evt.id)}
-                className={`p-4 rounded-3xl border transition-all cursor-pointer flex flex-col gap-3 ${
-                  isSelected
-                    ? "bg-secondary border-primary/40 shadow-xs"
-                    : "bg-card border-border hover:border-border/80"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    {/* Date Badge */}
-                    <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex flex-col items-center justify-center shrink-0 shadow-xs border border-primary/30">
-                      <span className="text-[9px] font-extrabold uppercase opacity-80 tracking-widest">
-                        {evt.monthBadge}
-                      </span>
-                      <span className="text-lg font-black leading-none">{evt.dayBadge}</span>
-                    </div>
-
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">
-                        {evt.category}
-                      </span>
-                      <h2 className="text-sm font-extrabold text-foreground truncate">
-                        {evt.title}
-                      </h2>
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
-                        <HugeiconsIcon icon={Location01Icon} className="w-3 h-3 text-destructive shrink-0" />
-                        <span className="truncate">
-                          {evt.location}, {evt.province}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Select Toggle Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleSelectFestival(evt.id)
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "bg-background border border-border text-foreground hover:bg-card"
-                    }`}
-                  >
-                    <HugeiconsIcon icon={isSelected ? CheckIcon : Add01Icon} className="w-3.5 h-3.5" />
-                    <span>{isSelected ? "Terpilih" : "+ Pilih"}</span>
-                  </button>
-                </div>
-
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 pl-0.5">
-                  {evt.description}
-                </p>
-
-                <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-foreground">{evt.date}</span>
-                  
-                  {/* Play Trailer Action Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedTrailerEvent(evt)
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-extrabold transition-all cursor-pointer shadow-xs active:scale-95"
-                    title="Tonton Trailer"
-                  >
-                    <HugeiconsIcon icon={PlayCircleIcon} className="w-3.5 h-3.5" />
-                    <span>Play Trailer</span>
-                  </button>
-                </div>
-              </div>
-            )
-          })
-        )}
-      </div>
+      <ErrorBoundary label="Daftar Festival">
+        <FestivalList
+          filter={filter}
+          selectedFestivalIds={selectedFestivalIds}
+          onToggleSelect={toggleSelectFestival}
+          onSelectTrailer={setSelectedTrailerEvent}
+          onSavePlan={handleSavePlan}
+        />
+      </ErrorBoundary>
 
       {/* Video Trailer Modal Dialog */}
       {selectedTrailerEvent && (
@@ -387,29 +301,248 @@ function SelectFestivalPlanContent() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+interface FestivalListProps {
+  filter: TravelPlanFilter
+  selectedFestivalIds: Record<string, boolean>
+  onToggleSelect: (id: string) => void
+  onSelectTrailer: (
+    evt: NonNullable<ReturnType<typeof useFestivals>["festivals"]>[number]
+  ) => void
+  onSavePlan: (events: ReturnType<typeof useFestivals>["festivals"]) => void
+}
+
+function FestivalList({
+  filter,
+  selectedFestivalIds,
+  onToggleSelect,
+  onSelectTrailer,
+  onSavePlan,
+}: FestivalListProps) {
+  const { festivals = [], isPending, error, refetch } = useFestivals(filter)
+  const selectedEvents = festivals.filter((e) => selectedFestivalIds[e.id])
+
+  return (
+    <div className="flex flex-col gap-3.5">
+      <div className="flex items-center justify-between px-0.5">
+        <span className="text-xs font-extrabold text-foreground uppercase tracking-wider">
+          Festival Berlangsung ({festivals.length})
+        </span>
+        <span className="text-[11px] text-muted-foreground font-semibold">
+          {selectedEvents.length} Terpilih
+        </span>
+      </div>
+
+      {isPending ? (
+        <FestivalListSkeleton />
+      ) : error ? (
+        <div className="p-8 text-center bg-card rounded-3xl border border-border flex flex-col items-center justify-center gap-3">
+          <HugeiconsIcon icon={Search01Icon} className="w-8 h-8 text-destructive/60" />
+          <span className="text-xs font-extrabold text-foreground">
+            Gagal memuat daftar festival
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            Terjadi kesalahan saat mengambil data. Silakan coba lagi.
+          </span>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-extrabold cursor-pointer"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      ) : festivals.length === 0 ? (
+        <div className="p-8 text-center bg-card rounded-3xl border border-border flex flex-col items-center justify-center gap-2">
+          <HugeiconsIcon icon={Search01Icon} className="w-8 h-8 text-muted-foreground/40" />
+          <span className="text-xs font-extrabold text-foreground">Tidak ada festival ditemukan</span>
+          <span className="text-[11px] text-muted-foreground">
+            Tidak ada perayaan budaya pada rentang tanggal &amp; lokasi ini. Coba sesuaikan kata kunci pencarian.
+          </span>
+        </div>
+      ) : (
+        festivals.map((evt) => {
+          const isSelected = !!selectedFestivalIds[evt.id]
+          const hasTrailer = !!evt.videoUrl
+
+          return (
+            <div
+              key={evt.id}
+              onClick={() => onToggleSelect(evt.id)}
+              className={`rounded-3xl border transition-all cursor-pointer flex flex-col overflow-hidden ${
+                isSelected
+                  ? "bg-secondary border-primary/40 shadow-xs"
+                  : "bg-card border-border hover:border-border/80"
+              }`}
+            >
+              {/* Card Image Header */}
+              <div className="relative w-full h-[180px] sm:h-[200px] overflow-hidden">
+                <Image
+                  src={evt.image || "/images/prambanan-hero.png"}
+                  alt={evt.title}
+                  fill
+                  className="object-cover transition-transform duration-500 hover:scale-105"
+                  sizes="(max-width: 640px) 100vw, 400px"
+                />
+                {/* Gradient overlay for text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                
+                {/* Select Toggle Button Overlay */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleSelect(evt.id)
+                  }}
+                  className={`absolute top-3 right-3 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 z-10 ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-background/90 backdrop-blur-md border border-border text-foreground hover:bg-card"
+                  }`}
+                >
+                  <HugeiconsIcon icon={isSelected ? CheckIcon : Add01Icon} className="w-3.5 h-3.5" />
+                  <span>{isSelected ? "Terpilih" : "+ Pilih"}</span>
+                </button>
+
+                {/* Festival Type Label and Title Overlay */}
+                <div className="absolute bottom-3 left-4 right-4 flex flex-col z-10">
+                  <span className="text-[10px] font-extrabold text-white/80 uppercase tracking-wider mb-0.5">
+                    {festivalTypeLabel(evt.type)}
+                  </span>
+                  <h2 className="text-base font-extrabold text-white truncate drop-shadow-md">
+                    {evt.title}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Card Body Info */}
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 w-full">
+                    {/* Date Badge */}
+                    <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex flex-col items-center justify-center shrink-0 shadow-xs border border-primary/30">
+                      <span className="text-[9px] font-extrabold uppercase opacity-80 tracking-widest">
+                        {evt.monthBadge}
+                      </span>
+                      <span className="text-lg font-black leading-none">{evt.dayBadge}</span>
+                    </div>
+
+                    <div className="flex flex-col min-w-0 flex-1 justify-center">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <HugeiconsIcon icon={Location01Icon} className="w-4 h-4 text-destructive shrink-0" />
+                        <span className="truncate font-semibold">
+                          {evt.location}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 pl-0.5">
+                  {evt.description}
+                </p>
+
+                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-[11px] mt-1">
+                  <span className="font-bold text-foreground">{evt.date}</span>
+
+                  {/* Play Trailer Action Button */}
+                  {hasTrailer && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectTrailer(evt)
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-extrabold transition-all cursor-pointer shadow-xs active:scale-95"
+                      title="Tonton Trailer"
+                    >
+                      <HugeiconsIcon icon={PlayCircleIcon} className="w-3.5 h-3.5" />
+                      <span>Play Trailer</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })
+      )}
 
       {/* Floating Bottom Sticky Action Bar */}
-      <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-0 z-40">
-        <button
-          onClick={handleSavePlan}
-          className="w-full py-4 sm:py-4.5 px-5 rounded-t-3xl bg-primary text-primary-foreground text-sm font-black flex items-center justify-between shadow-2xl hover:bg-primary/95 transition-all cursor-pointer border-t border-x border-primary-foreground/20 active:opacity-95"
+      {!isPending && !error && (
+        <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-0 z-40">
+          <button
+            onClick={() => onSavePlan(festivals)}
+            className="w-full py-4 sm:py-4.5 px-5 rounded-t-3xl bg-primary text-primary-foreground text-sm font-black flex items-center justify-between shadow-2xl hover:bg-primary/95 transition-all cursor-pointer border-t border-x border-primary-foreground/20 active:opacity-95"
+          >
+            <div className="flex items-center gap-2.5">
+              <HugeiconsIcon icon={Bookmark01Icon} className="w-5 h-5" />
+              <span>Simpan Rencana Liburan</span>
+            </div>
+            <span className="bg-primary-foreground/20 text-primary-foreground px-3 py-1.5 rounded-xl text-xs font-black shrink-0">
+              {selectedEvents.length} Dipilih →
+            </span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FestivalListSkeleton() {
+  return (
+    <div className="flex flex-col gap-3.5">
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className="rounded-3xl border border-border bg-card flex flex-col overflow-hidden"
         >
-          <div className="flex items-center gap-2.5">
-            <HugeiconsIcon icon={Bookmark01Icon} className="w-5 h-5" />
-            <span>Simpan Rencana Liburan</span>
+          {/* Skeleton Image Header */}
+          <div className="relative w-full h-[180px] sm:h-[200px]">
+            <Skeleton className="w-full h-full rounded-none" />
+            <div className="absolute top-3 right-3">
+              <Skeleton className="h-7 w-20 rounded-xl" />
+            </div>
+            <div className="absolute bottom-3 left-4 right-4 flex flex-col gap-2">
+              <Skeleton className="h-3 w-16 rounded" />
+              <Skeleton className="h-5 w-3/4 rounded" />
+            </div>
           </div>
-          <span className="bg-primary-foreground/20 text-primary-foreground px-3 py-1.5 rounded-xl text-xs font-black shrink-0">
-            {selectedEvents.length} Dipilih →
-          </span>
-        </button>
-      </div>
+          
+          {/* Skeleton Body Info */}
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 w-full">
+                <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+                <div className="flex flex-col flex-1 justify-center">
+                  <Skeleton className="h-4 w-32 rounded" />
+                </div>
+              </div>
+            </div>
+            <Skeleton className="h-3 w-full rounded" />
+            <Skeleton className="h-3 w-3/4 rounded" />
+            <div className="pt-3 border-t border-border/60 flex items-center justify-between mt-1">
+              <Skeleton className="h-3 w-24 rounded" />
+              <Skeleton className="h-7 w-24 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
 
 export default function SelectFestivalPlanPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-muted-foreground font-bold">Memuat rencana liburan...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-xs text-muted-foreground font-bold">
+          Memuat rencana liburan...
+        </div>
+      }
+    >
       <SelectFestivalPlanContent />
     </Suspense>
   )
