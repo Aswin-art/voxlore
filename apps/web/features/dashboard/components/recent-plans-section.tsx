@@ -9,13 +9,52 @@ import {
   ArrowRight01Icon,
   Cancel01Icon,
 } from "@hugeicons/core-free-icons"
-import {
-  INITIAL_RECENT_PLANS,
-  RecentPlanItem,
-  FestivalEvent,
-} from "@/app/(user)/events/data"
+import type { FestivalItem } from "@/features/events/types"
+import { getFestivalById } from "@/lib/data"
 
-export type { FestivalEvent, RecentPlanItem }
+export interface RecentPlanItem {
+  id: string
+  title: string
+  province: string
+  dateRangeStr: string
+  eventsCount: number
+  createdDate: string
+  events: FestivalItem[]
+}
+
+export type { FestivalItem }
+
+// Backwards compatibility re-export
+export type { RecentPlanItem as FestivalEvent }
+
+const pickFestival = (id: string): FestivalItem => {
+  const f = getFestivalById(id)
+  if (!f) {
+    throw new Error(`Festival "${id}" tidak ditemukan di lib/data`)
+  }
+  return f
+}
+
+export const INITIAL_RECENT_PLANS: RecentPlanItem[] = [
+  {
+    id: "plan-toraja-aug",
+    title: "Eksplorasi Budaya Toraja",
+    province: "Sulawesi Selatan",
+    dateRangeStr: "18 - 21 Juni 2026",
+    eventsCount: 1,
+    createdDate: "Hari ini",
+    events: [pickFestival("toraya-magellu")],
+  },
+  {
+    id: "plan-dieng-aug",
+    title: "Liburan Adat Dieng",
+    province: "Jawa Tengah",
+    dateRangeStr: "28 - 30 Agustus 2026",
+    eventsCount: 1,
+    createdDate: "2 hari yang lalu",
+    events: [pickFestival("dieng-culture-fest")],
+  },
+]
 
 interface RecentPlansSectionProps {
   className?: string

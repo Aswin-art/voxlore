@@ -82,9 +82,14 @@ export const POPULAR_DESTINATIONS_DATA: DestinationItem[] = [
 
 interface PopularDestinationsProps {
   onSelectDestination?: (destination: DestinationItem) => void
+  /** Jika true, klik kartu langsung navigasi ke /culture/:id (default). */
+  navigateOnClick?: boolean
 }
 
-export function PopularDestinations({ onSelectDestination }: PopularDestinationsProps) {
+export function PopularDestinations({
+  onSelectDestination,
+  navigateOnClick = true,
+}: PopularDestinationsProps) {
   const router = useRouter()
   const [favorites, setFavorites] = useState<Record<string, boolean>>({
     prambanan: true,
@@ -96,8 +101,11 @@ export function PopularDestinations({ onSelectDestination }: PopularDestinations
   }
 
   const handleCardClick = (dest: DestinationItem) => {
-    onSelectDestination?.(dest)
-    router.push(`/culture/${dest.id}`)
+    if (navigateOnClick) {
+      router.push(`/culture/${dest.id}`)
+    } else {
+      onSelectDestination?.(dest)
+    }
   }
 
   return (
