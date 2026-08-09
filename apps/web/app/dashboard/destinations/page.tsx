@@ -1,5 +1,8 @@
 import { Compass01Icon } from "@hugeicons/core-free-icons"
+import { ALL_DESTINATIONS } from "@/lib/data"
+import { hasCatalogImage } from "@/features/admin/data/admin-catalog"
 import { AdminSectionView } from "@/features/admin/components/admin-section-view"
+import type { AdminSectionConfig } from "@/features/admin/components/admin-section-view"
 
 export const metadata = {
   title: "Destinations | Voxlore Admin",
@@ -7,19 +10,21 @@ export const metadata = {
 }
 
 export default function AdminDestinationsPage() {
-  return (
-    <AdminSectionView
-      config={{
-        title: "Destinations",
-        description: "Periksa destinasi budaya, lokasi, dan kesiapan panduan audio.",
-        icon: Compass01Icon,
-        summary: "Destinasi yang perlu ditinjau sebelum dipublikasikan.",
-        rows: [
-          { label: "Candi Prambanan", detail: "Sleman · 12 panduan audio", status: "Aktif" },
-          { label: "Candi Borobudur", detail: "Magelang · 18 panduan audio", status: "Aktif" },
-          { label: "Wayang Kulit Purwa", detail: "Surakarta · 8 panduan audio", status: "Draft review" },
-        ],
-      }}
-    />
+  const rows = ALL_DESTINATIONS.filter((d) => hasCatalogImage(d.image)).map(
+    (d) => ({
+      label: d.title,
+      detail: `${d.location} · ${d.category}`,
+      status: "Aktif",
+    }),
   )
+
+  const config: AdminSectionConfig = {
+    title: "Destinations",
+    description: "Periksa destinasi budaya, lokasi, dan kesiapan panduan audio.",
+    icon: Compass01Icon,
+    summary: "Seluruh destinasi dari katalog yang sudah memiliki panduan audio.",
+    rows,
+  }
+
+  return <AdminSectionView config={config} />
 }

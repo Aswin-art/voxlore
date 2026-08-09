@@ -14,6 +14,7 @@ import {
   StarIcon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
+import { useAdminDestinations, useAdminEvents, useAdminReviews } from "../hooks/use-admin"
 
 export interface AdminSidebarProps {
   isMobileOpen: boolean
@@ -22,12 +23,12 @@ export interface AdminSidebarProps {
 }
 
 export const ADMIN_NAV_ITEMS = [
-  { label: "Dashboard Overview", href: "/dashboard", icon: DashboardSquare01Icon, badge: undefined },
-  { label: "Destinations", href: "/dashboard/destinations", icon: Compass01Icon, badge: undefined },
-  { label: "Events", href: "/dashboard/events", icon: Calendar03Icon, badge: "8" },
-  { label: "Reviews", href: "/dashboard/reviews", icon: StarIcon, badge: "2" },
-  { label: "Users", href: "/dashboard/users", icon: UserGroupIcon, badge: undefined },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings01Icon, badge: undefined },
+  { label: "Dashboard Overview", href: "/dashboard", icon: DashboardSquare01Icon },
+  { label: "Destinations", href: "/dashboard/destinations", icon: Compass01Icon },
+  { label: "Events", href: "/dashboard/events", icon: Calendar03Icon },
+  { label: "Reviews", href: "/dashboard/reviews", icon: StarIcon },
+  { label: "Users", href: "/dashboard/users", icon: UserGroupIcon },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings01Icon },
 ]
 
 export function AdminSidebar({
@@ -36,6 +37,18 @@ export function AdminSidebar({
   onCloseMobile,
 }: AdminSidebarProps) {
   const pathname = usePathname()
+
+  const { destinations } = useAdminDestinations()
+  const { events } = useAdminEvents()
+  const { reviews } = useAdminReviews()
+
+  // Badge dinamis dari katalog (bukan angka hardcode).
+  const badgeFor = (href: string): string | undefined => {
+    if (href === "/dashboard/events") return String(events?.length ?? 0)
+    if (href === "/dashboard/destinations") return String(destinations?.length ?? 0)
+    if (href === "/dashboard/reviews") return String(reviews?.length ?? 0)
+    return undefined
+  }
 
   useEffect(() => {
     if (!isMobileOpen) return
@@ -97,6 +110,7 @@ export function AdminSidebar({
 
         {ADMIN_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(`${item.href}/`))
+          const badge = badgeFor(item.href)
           return (
             <Link
               key={item.href}
@@ -119,7 +133,7 @@ export function AdminSidebar({
               {!isCollapsed && (
                 <div className="flex items-center justify-between flex-1 truncate">
                   <span className="truncate">{item.label}</span>
-                  {item.badge && (
+                  {badge && (
                     <span
                       className={`ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
                         isActive
@@ -127,7 +141,7 @@ export function AdminSidebar({
                           : "bg-white/15 text-white/90"
                       }`}
                     >
-                      {item.badge}
+                      {badge}
                     </span>
                   )}
                 </div>

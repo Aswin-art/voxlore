@@ -1,5 +1,7 @@
 import { UserGroupIcon } from "@hugeicons/core-free-icons"
+import { PROVINCES, REGIONS } from "@/lib/data"
 import { AdminSectionView } from "@/features/admin/components/admin-section-view"
+import type { AdminSectionConfig } from "@/features/admin/components/admin-section-view"
 
 export const metadata = {
   title: "Users | Voxlore Admin",
@@ -7,19 +9,19 @@ export const metadata = {
 }
 
 export default function AdminUsersPage() {
-  return (
-    <AdminSectionView
-      config={{
-        title: "Users",
-        description: "Pantau akun komunitas dan akses mereka ke pengalaman Voxlore.",
-        icon: UserGroupIcon,
-        summary: "Ringkasan akun yang baru memerlukan perhatian admin.",
-        rows: [
-          { label: "Komunitas wisatawan", detail: "Akun terverifikasi · akses standar", status: "Aktif" },
-          { label: "Kontributor budaya", detail: "Akun terverifikasi · akses editor", status: "Aktif" },
-          { label: "Permintaan akses baru", detail: "Perlu pemeriksaan identitas dan peran", status: "Perlu tinjau" },
-        ],
-      }}
-    />
-  )
+  const rows = REGIONS.map((region) => ({
+    label: `Komunitas ${region}`,
+    detail: `${PROVINCES.length} provinsi tercakup`,
+    status: "Aktif",
+  }))
+
+  const config: AdminSectionConfig = {
+    title: "Users",
+    description: "Pantau akun komunitas dan akses mereka ke pengalaman Voxlore.",
+    icon: UserGroupIcon,
+    summary: "Jangkauan komunitas berdasarkan wilayah budaya Nusantara.",
+    rows,
+  }
+
+  return <AdminSectionView config={config} />
 }
