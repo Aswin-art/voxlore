@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -10,6 +10,8 @@ import {
   Clock01Icon,
   ArrowRight01Icon,
 } from "@hugeicons/core-free-icons"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export interface NotificationItem {
   id: string
@@ -58,7 +60,36 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   },
 ]
 
+function NotificationsPageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-3 w-full">
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+      </div>
+    </div>
+  )
+}
+
 export default function NotificationsPage() {
+  return (
+    <Suspense fallback={<NotificationsPageSkeleton />}>
+      <ErrorBoundary label="Notifikasi">
+        <NotificationsPageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function NotificationsPageContent() {
   const router = useRouter()
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS)
   const [toast, setToast] = useState<string | null>(null)

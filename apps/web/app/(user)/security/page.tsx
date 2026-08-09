@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
@@ -11,8 +13,44 @@ import {
   ViewOffIcon,
   Tick01Icon,
 } from "@hugeicons/core-free-icons"
+import {
+  changePasswordSchema,
+  type ChangePasswordFormValues,
+} from "@/features/shared/data/forms-schema"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+
+function SecurityPageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-3 w-52" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-5 w-full">
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <Skeleton className="h-12 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
 
 export default function SecurityPage() {
+  return (
+    <Suspense fallback={<SecurityPageSkeleton />}>
+      <ErrorBoundary label="Keamanan & Kata Sandi">
+        <SecurityPageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function SecurityPageContent() {
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -20,41 +58,31 @@ export default function SecurityPage() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   })
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setPasswordForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setToast("Konfirmasi kata sandi baru tidak cocok ❌")
-      setTimeout(() => setToast(null), 3000)
-      return
-    }
-
-    if (passwordForm.newPassword.length < 8) {
-      setToast("Kata sandi minimal 8 karakter ⚠️")
-      setTimeout(() => setToast(null), 3000)
-      return
-    }
-
+  const handlePasswordSubmit = handleSubmit((values) => {
     setIsSubmitting(true)
     setTimeout(() => {
       setIsSubmitting(false)
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      reset({ currentPassword: "", newPassword: "", confirmPassword: "" })
       setToast("Kata sandi berhasil diperbarui 🔒")
       setTimeout(() => {
         router.back()
       }, 1200)
     }, 1000)
-  }
+  })
 
   return (
     <div className="flex flex-col pb-28 relative w-full min-w-0">
@@ -102,12 +130,10 @@ export default function SecurityPage() {
               />
               <input
                 id="currentPassword"
-                name="currentPassword"
                 type={showCurrentPassword ? "text" : "password"}
-                required
-                value={passwordForm.currentPassword}
-                onChange={handlePasswordChange}
+                {...register("currentPassword")}
                 placeholder="Masukkan kata sandi lama"
+                aria-invalid={!!errors.currentPassword}
                 className="w-full pl-10 pr-10 py-3 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
               />
               <button
@@ -121,6 +147,11 @@ export default function SecurityPage() {
                 />
               </button>
             </div>
+            {errors.currentPassword && (
+              <span className="text-[10px] font-bold text-destructive">
+                {errors.currentPassword.message}
+              </span>
+            )}
           </div>
 
           {/* Field 2: Kata Sandi Baru */}
@@ -135,12 +166,10 @@ export default function SecurityPage() {
               />
               <input
                 id="newPassword"
-                name="newPassword"
                 type={showNewPassword ? "text" : "password"}
-                required
-                value={passwordForm.newPassword}
-                onChange={handlePasswordChange}
+                {...register("newPassword")}
                 placeholder="Minimal 8 karakter"
+                aria-invalid={!!errors.newPassword}
                 className="w-full pl-10 pr-10 py-3 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
               />
               <button
@@ -154,6 +183,11 @@ export default function SecurityPage() {
                 />
               </button>
             </div>
+            {errors.newPassword && (
+              <span className="text-[10px] font-bold text-destructive">
+                {errors.newPassword.message}
+              </span>
+            )}
           </div>
 
           {/* Field 3: Konfirmasi Kata Sandi Baru */}
@@ -168,12 +202,10 @@ export default function SecurityPage() {
               />
               <input
                 id="confirmPassword"
-                name="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                required
-                value={passwordForm.confirmPassword}
-                onChange={handlePasswordChange}
+                {...register("confirmPassword")}
                 placeholder="Ulangi kata sandi baru"
+                aria-invalid={!!errors.confirmPassword}
                 className="w-full pl-10 pr-10 py-3 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
               />
               <button
@@ -187,6 +219,11 @@ export default function SecurityPage() {
                 />
               </button>
             </div>
+            {errors.confirmPassword && (
+              <span className="text-[10px] font-bold text-destructive">
+                {errors.confirmPassword.message}
+              </span>
+            )}
           </div>
 
           {/* Submit Action Button */}

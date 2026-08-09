@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { ActionButton } from "@workspace/ui/components/action-button"
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 
@@ -74,7 +75,9 @@ export function HeroSection() {
             </p>
 
             <div className="pt-2">
-              <ActionButton onClick={scrollToAbout}>Mulai Jelajahi</ActionButton>
+              <Link href="/register">
+                <ActionButton>Mulai Jelajahi</ActionButton>
+              </Link>
             </div>
           </div>
         </div>

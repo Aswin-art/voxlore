@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -19,6 +19,8 @@ import {
 import { SearchableSelect } from "@/features/shared/components/searchable-select"
 import { ToastBanner } from "@/features/shared/components/toast-banner"
 import { CATEGORIES, PROVINCES } from "@/features/shared/data/filter-options"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export interface FavoriteItem {
   id: string
@@ -72,7 +74,37 @@ const FAVORITE_ITEMS: FavoriteItem[] = [
   },
 ]
 
+function FavoritesPageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-3 w-52" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-4 w-full">
+        <Skeleton className="h-11 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+      </div>
+    </div>
+  )
+}
+
 export default function FavoritesPage() {
+  return (
+    <Suspense fallback={<FavoritesPageSkeleton />}>
+      <ErrorBoundary label="Favorit Saya">
+        <FavoritesPageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function FavoritesPageContent() {
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")

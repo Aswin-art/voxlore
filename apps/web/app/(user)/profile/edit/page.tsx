@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
@@ -11,37 +13,110 @@ import {
   CallIcon,
   Tick01Icon,
 } from "@hugeicons/core-free-icons"
+import { useSession } from "@/features/auth/hooks/use-auth"
+import type { AuthUser } from "@/features/auth/data/auth-api"
+import {
+  editProfileSchema,
+  type EditProfileFormValues,
+} from "@/features/shared/data/forms-schema"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+
+const USER_KEY = "voxlore_user"
+
+/** Sesi awal dari localStorage (useSession cukup untuk baca; pastikan mount-safe). */
+function getInitialUser(): AuthUser | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    return raw ? (JSON.parse(raw) as AuthUser) : null
+  } catch {
+    return null
+  }
+}
+
+function EditProfilePageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-5 w-full">
+        <Skeleton className="h-40 w-full rounded-3xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
 
 export default function EditProfilePage() {
+  return (
+    <Suspense fallback={<EditProfilePageSkeleton />}>
+      <ErrorBoundary label="Edit Profil">
+        <EditProfilePageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function EditProfilePageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
-  // Form State
-  const [formData, setFormData] = useState({
-    name: "Aswin Prasetya",
-    email: "aswin.prasetya@example.com",
-    phone: "+62 812-3456-7890",
-    bio: "Pencinta sejarah & kebudayaan lokal Nusantara.",
+  const session = useSession()
+  const sessionUser = session.user
+  const initialUser = getInitialUser()
+  const user = sessionUser ?? initialUser
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<EditProfileFormValues>({
+    resolver: zodResolver(editProfileSchema),
+    defaultValues: {
+      name: user?.name ?? "",
+      email: user?.email ?? "",
+      phone: user?.phone ?? "",
+      bio: user?.bio ?? "",
+    },
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmitForm = handleSubmit((values) => {
     setIsSubmitting(true)
 
+    // Persist perubahan ke sesi (localStorage) agar profile/halaman lain sinkron.
     setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(USER_KEY)
+        const current = raw ? (JSON.parse(raw) as AuthUser) : null
+        const next: AuthUser = {
+          ...(current ?? {}),
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          bio: values.bio ?? "",
+        } as AuthUser
+        localStorage.setItem(USER_KEY, JSON.stringify(next))
+      } catch {
+        // abaikan — jangan blokir submit karena localStorage
+      }
       setIsSubmitting(false)
       setToast("Profil berhasil diperbarui ✨")
       setTimeout(() => {
         router.back()
       }, 1200)
     }, 1000)
-  }
+  })
 
   return (
     <div className="flex flex-col pb-28 relative w-full min-w-0">
@@ -94,13 +169,13 @@ export default function EditProfilePage() {
           </div>
 
           <div className="flex flex-col items-center">
-            <span className="text-sm font-extrabold text-foreground">{formData.name}</span>
-            <span className="text-xs text-muted-foreground">{formData.email}</span>
+            <span className="text-sm font-extrabold text-foreground">{watch("name")}</span>
+            <span className="text-xs text-muted-foreground">{watch("email")}</span>
           </div>
         </div>
 
         {/* Main Edit Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmitForm} className="flex flex-col gap-4">
           {/* Input 1: Nama Lengkap (Wajib) */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="name" className="text-xs font-bold text-foreground">
@@ -113,15 +188,15 @@ export default function EditProfilePage() {
               />
               <input
                 id="name"
-                name="name"
                 type="text"
-                required
-                value={formData.name}
-                onChange={handleChange}
                 placeholder="Masukkan nama lengkap kamu"
                 className="w-full pl-10 pr-4 py-3 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
+                {...register("name")}
               />
             </div>
+            {errors.name?.message && (
+              <span className="text-[10px] font-bold text-destructive">{errors.name.message}</span>
+            )}
           </div>
 
           {/* Input 2: Email (Wajib) */}
@@ -136,15 +211,15 @@ export default function EditProfilePage() {
               />
               <input
                 id="email"
-                name="email"
                 type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
                 placeholder="nama@email.com"
                 className="w-full pl-10 pr-4 py-3 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
+                {...register("email")}
               />
             </div>
+            {errors.email?.message && (
+              <span className="text-[10px] font-bold text-destructive">{errors.email.message}</span>
+            )}
           </div>
 
           {/* Input 3: Nomor Telepon (Wajib) */}
@@ -159,15 +234,15 @@ export default function EditProfilePage() {
               />
               <input
                 id="phone"
-                name="phone"
                 type="tel"
-                required
-                value={formData.phone}
-                onChange={handleChange}
                 placeholder="+62 812-xxxx-xxxx"
                 className="w-full pl-10 pr-4 py-3 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium"
+                {...register("phone")}
               />
             </div>
+            {errors.phone?.message && (
+              <span className="text-[10px] font-bold text-destructive">{errors.phone.message}</span>
+            )}
           </div>
 
           {/* Input 4: Biografi Singkat */}
@@ -177,13 +252,14 @@ export default function EditProfilePage() {
             </label>
             <textarea
               id="bio"
-              name="bio"
               rows={3}
-              value={formData.bio}
-              onChange={handleChange}
               placeholder="Tulis sedikit tentang diri kamu..."
               className="w-full p-3.5 text-xs bg-background border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-card transition-all text-foreground placeholder:text-muted-foreground font-medium resize-none"
+              {...register("bio")}
             />
+            {errors.bio?.message && (
+              <span className="text-[10px] font-bold text-destructive">{errors.bio.message}</span>
+            )}
           </div>
 
           {/* Submit Action Button */}

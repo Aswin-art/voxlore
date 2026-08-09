@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -10,11 +10,42 @@ import {
   Cancel01Icon,
   Download01Icon,
 } from "@hugeicons/core-free-icons"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+
+function PackagesPageSkeleton() {
+  return (
+    <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex items-center gap-3 w-full min-w-0">
+        <Skeleton className="w-9 h-9 rounded-2xl" />
+        <div className="flex flex-col gap-2 min-w-0">
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+      </header>
+      <div className="p-4 sm:p-5 flex flex-col gap-5 w-full">
+        <Skeleton className="h-44 w-full rounded-3xl" />
+        <Skeleton className="h-44 w-full rounded-3xl" />
+        <Skeleton className="h-52 w-full rounded-3xl" />
+        <Skeleton className="h-44 w-full rounded-3xl" />
+      </div>
+    </div>
+  )
+}
 
 export default function PackagesPage() {
+  return (
+    <Suspense fallback={<PackagesPageSkeleton />}>
+      <ErrorBoundary label="Paket Berlangganan">
+        <PackagesPageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function PackagesPageContent() {
   const router = useRouter()
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
-  const [currentPlan, setCurrentPlan] = useState<string>("heritage-pass")
+  const [currentPlan, setCurrentPlan] = useState<string>("monthly-destinasi-pass")
   const [toast, setToast] = useState<string | null>(null)
   const [selectedPlanModal, setSelectedPlanModal] = useState<string | null>(null)
 
@@ -66,41 +97,14 @@ export default function PackagesPage() {
 
       {/* Main Content Area */}
       <div className="p-4 sm:p-5 flex flex-col gap-5 w-full">
-        {/* Billing Cycle Toggle Pill */}
-        <div className="flex items-center justify-center p-1 bg-card border border-border rounded-2xl w-full">
-          <button
-            onClick={() => setBillingCycle("monthly")}
-            className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer text-center ${
-              billingCycle === "monthly"
-                ? "bg-primary text-primary-foreground shadow-2xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Bulanan
-          </button>
-          <button
-            onClick={() => setBillingCycle("yearly")}
-            className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
-              billingCycle === "yearly"
-                ? "bg-primary text-primary-foreground shadow-2xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>Tahunan</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-extrabold border border-amber-500/30">
-              -20%
-            </span>
-          </button>
-        </div>
-
         {/* Subscription Cards List */}
         <div className="flex flex-col gap-4 w-full">
-          {/* Tier 1: Penjelajah (Free) */}
+          {/* Tier 1: Sampel Gratis (Freemium) */}
           <div className="p-5 rounded-3xl bg-card border border-border flex flex-col gap-4 shadow-2xs">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-sm font-black text-foreground">Penjelajah</h3>
-                <p className="text-xs text-muted-foreground">Akses gratis tingkat dasar untuk pemula</p>
+                <h3 className="text-sm font-black text-foreground">Sampel Gratis</h3>
+                <p className="text-xs text-muted-foreground">Freemium — membangun kepercayaan sebelum upgrade</p>
               </div>
               <div className="text-right">
                 <span className="text-lg font-black text-foreground">Rp 0</span>
@@ -126,33 +130,68 @@ export default function PackagesPage() {
             </ul>
 
             <button
-              onClick={() => handleSelectPlan("free", "Penjelajah")}
+              onClick={() => handleSelectPlan("free", "Sampel Gratis")}
               className="w-full py-3 rounded-2xl bg-background border border-border text-xs font-extrabold text-foreground hover:bg-card transition-colors cursor-pointer"
             >
               Pilih Paket Gratis
             </button>
           </div>
 
-          {/* Tier 2: Heritage Pass (Minimalist, Clean & Palette Consistent) */}
+          {/* Tier 2: Weekly Vacation Pass */}
+          <div className="p-5 rounded-3xl bg-card border border-border flex flex-col gap-4 shadow-2xs">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-black text-foreground">Weekly Vacation Pass</h3>
+                <p className="text-xs text-muted-foreground">Terbaik untuk turis liburan satu minggu</p>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-black text-foreground">Rp 29.000</span>
+                <span className="text-[10px] text-muted-foreground font-semibold block">/minggu</span>
+              </div>
+            </div>
+
+            <div className="h-px bg-border/60 w-full" />
+
+            <ul className="flex flex-col gap-2.5 text-xs text-muted-foreground font-medium">
+              <li className="flex items-center gap-2">
+                <HugeiconsIcon icon={Tick01Icon} className="w-4 h-4 text-primary shrink-0" />
+                <span>Akses penuh 7 hari ke semua audio guide</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <HugeiconsIcon icon={Download01Icon} className="w-4 h-4 text-primary shrink-0" />
+                <span>Unduhan luring saat perjalanan</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <HugeiconsIcon icon={Tick01Icon} className="w-4 h-4 text-primary shrink-0" />
+                <span>Narasi HD (320 kbps)</span>
+              </li>
+            </ul>
+
+            <button
+              onClick={() => handleSelectPlan("weekly-vacation-pass", "Weekly Vacation Pass")}
+              className="w-full py-3 rounded-2xl bg-background border border-border text-xs font-extrabold text-foreground hover:bg-card transition-colors cursor-pointer"
+            >
+              Pilih Weekly Vacation Pass
+            </button>
+          </div>
+
+          {/* Tier 3: Monthly Destinasi Pass (best seller) */}
           <div className="p-5 rounded-3xl bg-card border-2 border-primary flex flex-col gap-4 shadow-2xs relative">
-            {/* Minimalist Popular Badge */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-foreground">Heritage Pass</h3>
+                <h3 className="text-base font-black text-foreground">Monthly Destinasi Pass</h3>
                 <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black border border-primary/20">
-                  Populer
+                  Best Seller
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-xl font-black text-primary">
-                  {billingCycle === "monthly" ? "Rp 49rb" : "Rp 39rb"}
-                </span>
+                <span className="text-xl font-black text-primary">Rp 59.000</span>
                 <span className="text-[10px] text-muted-foreground font-semibold block">/bulan</span>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground -mt-2">
-              Pengalaman narasi audio terlengkap tanpa kuota
+              Untuk digital nomad, staycation, &amp; traveler multi-destinasi
             </p>
 
             <div className="h-px bg-border/60 w-full" />
@@ -177,25 +216,23 @@ export default function PackagesPage() {
             </ul>
 
             <button
-              onClick={() => handleSelectPlan("heritage-pass", "Heritage Pass")}
+              onClick={() => handleSelectPlan("monthly-destinasi-pass", "Monthly Destinasi Pass")}
               className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-extrabold text-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
             >
-              {currentPlan === "heritage-pass" ? "Paket Saat Ini" : "Langganan Heritage Pass"}
+              {currentPlan === "monthly-destinasi-pass" ? "Paket Saat Ini" : "Langganan Monthly Destinasi Pass"}
             </button>
           </div>
 
-          {/* Tier 3: Nusantara VIP (Minimalist & Clean) */}
+          {/* Tier 4: Annual Explorer Pass */}
           <div className="p-5 rounded-3xl bg-card border border-border flex flex-col gap-4 shadow-2xs">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-sm font-black text-foreground">Nusantara VIP</h3>
-                <p className="text-xs text-muted-foreground">Fasilitas istimewa &amp; akses event eksklusif</p>
+                <h3 className="text-sm font-black text-foreground">Annual Explorer Pass</h3>
+                <p className="text-xs text-muted-foreground">Untuk traveler aktif &amp; pegiat budaya</p>
               </div>
               <div className="text-right">
-                <span className="text-lg font-black text-foreground">
-                  {billingCycle === "monthly" ? "Rp 99rb" : "Rp 79rb"}
-                </span>
-                <span className="text-[10px] text-muted-foreground font-semibold block">/bulan</span>
+                <span className="text-lg font-black text-foreground">Rp 199.000</span>
+                <span className="text-[10px] text-muted-foreground font-semibold block">/tahun</span>
               </div>
             </div>
 
@@ -204,7 +241,7 @@ export default function PackagesPage() {
             <ul className="flex flex-col gap-2.5 text-xs text-muted-foreground font-medium">
               <li className="flex items-center gap-2">
                 <HugeiconsIcon icon={Tick01Icon} className="w-4 h-4 text-primary shrink-0" />
-                <span>Semua fitur Heritage Pass Pro</span>
+                <span>Semua fitur Monthly Destinasi Pass</span>
               </li>
               <li className="flex items-center gap-2">
                 <HugeiconsIcon icon={Tick01Icon} className="w-4 h-4 text-primary shrink-0" />
@@ -221,10 +258,10 @@ export default function PackagesPage() {
             </ul>
 
             <button
-              onClick={() => handleSelectPlan("vip", "Nusantara VIP")}
+              onClick={() => handleSelectPlan("annual-explorer-pass", "Annual Explorer Pass")}
               className="w-full py-3 rounded-2xl bg-background border border-border text-xs font-extrabold text-foreground hover:bg-card transition-colors cursor-pointer"
             >
-              Pilih Nusantara VIP
+              Pilih Annual Explorer Pass
             </button>
           </div>
         </div>

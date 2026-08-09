@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
+import ErrorBoundary from "@/components/error-boundary"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserIcon,
@@ -26,6 +28,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@workspace/ui/components/drawer"
+import { useSession } from "@/features/auth/hooks/use-auth"
 
 export interface LanguageOption {
   code: string
@@ -41,17 +44,49 @@ const LANGUAGES: LanguageOption[] = [
   { code: "zh", name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
 ]
 
+function ProfilePageSkeleton() {
+  return (
+    <div className="p-4 sm:p-5 flex flex-col gap-5 pb-24 relative">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-3 w-48" />
+      </div>
+      <Skeleton className="h-40 w-full rounded-3xl" />
+      <Skeleton className="h-32 w-full rounded-3xl" />
+      <Skeleton className="h-32 w-full rounded-3xl" />
+    </div>
+  )
+}
+
 export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfilePageSkeleton />}>
+      <ErrorBoundary label="Profil Saya">
+        <ProfilePageContent />
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+function ProfilePageContent() {
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
   const [isLanguageDrawerOpen, setIsLanguageDrawerOpen] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(LANGUAGES[0]!)
 
+  const { user } = useSession()
+  const userName = user?.name || "Aswin Pratama"
+  const userEmail = user?.email || "aswin@voxlore.id"
   const userProfile = {
-    name: "Aswin Pratama",
-    email: "aswin@voxlore.id",
-    initials: "AP",
-    subscriptionPlan: "Heritage Pass",
+    name: userName,
+    email: userEmail,
+    initials: userName
+      .split(" ")
+      .map((p) => p.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase(),
+    subscriptionPlan: "Monthly Destinasi Pass",
     subscriptionStatus: "Aktif • Akses Penuh",
     destinationsVisited: 14,
     plansCreated: 5,
@@ -90,8 +125,8 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* Dark Styled User Hero Card */}
-      <div className="p-5 rounded-3xl bg-slate-950 text-white border border-slate-800 flex flex-col gap-4 shadow-xl relative overflow-hidden">
+      {/* User Hero Card */}
+      <div className="p-5 rounded-3xl bg-card text-foreground border border-border flex flex-col gap-4 shadow-2xs relative overflow-hidden">
         {/* Subtle glow ambient background */}
         <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -106,38 +141,38 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex flex-col min-w-0">
-            <h2 className="text-base font-black text-white tracking-tight truncate">
+            <h2 className="text-base font-black text-foreground tracking-tight truncate">
               {userProfile.name}
             </h2>
-            <span className="text-xs text-slate-400 font-semibold truncate mt-0.5">{userProfile.email}</span>
+            <span className="text-xs text-muted-foreground font-semibold truncate mt-0.5">{userProfile.email}</span>
           </div>
         </div>
 
-        {/* High-Impact Stats & Subscription Plan Info Card Grid (Dark Theme) */}
-        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80 relative z-10">
+        {/* High-Impact Stats & Subscription Plan Info Card Grid */}
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 relative z-10">
           {/* Card 1: Subscription Plan Info */}
-          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
-            <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4 text-amber-400 mb-0.5" />
-            <span className="text-xs font-black text-amber-300 truncate w-full">
+          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-secondary/60 border border-border text-center">
+            <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4 text-amber-500 mb-0.5" />
+            <span className="text-xs font-black text-foreground truncate w-full">
               {userProfile.subscriptionPlan}
             </span>
-            <span className="text-[9px] text-slate-400 font-extrabold truncate w-full">
+            <span className="text-[9px] text-muted-foreground font-extrabold truncate w-full">
               {userProfile.subscriptionStatus}
             </span>
           </div>
 
           {/* Card 2: Destinasi Terjelajah */}
-          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
-            <HugeiconsIcon icon={Location01Icon} className="w-4 h-4 text-emerald-400 mb-0.5" />
-            <span className="text-sm font-black text-emerald-300">{userProfile.destinationsVisited}</span>
-            <span className="text-[9px] text-slate-400 font-extrabold">Destinasi</span>
+          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-secondary/60 border border-border text-center">
+            <HugeiconsIcon icon={Location01Icon} className="w-4 h-4 text-emerald-500 mb-0.5" />
+            <span className="text-sm font-black text-foreground">{userProfile.destinationsVisited}</span>
+            <span className="text-[9px] text-muted-foreground font-extrabold">Destinasi</span>
           </div>
 
           {/* Card 3: Plan Liburan */}
-          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
-            <HugeiconsIcon icon={Calendar01Icon} className="w-4 h-4 text-sky-400 mb-0.5" />
-            <span className="text-sm font-black text-sky-300">{userProfile.plansCreated}</span>
-            <span className="text-[9px] text-slate-400 font-extrabold">Plan Liburan</span>
+          <div className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-secondary/60 border border-border text-center">
+            <HugeiconsIcon icon={Calendar01Icon} className="w-4 h-4 text-sky-500 mb-0.5" />
+            <span className="text-sm font-black text-foreground">{userProfile.plansCreated}</span>
+            <span className="text-[9px] text-muted-foreground font-extrabold">Plan Liburan</span>
           </div>
         </div>
       </div>
