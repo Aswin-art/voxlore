@@ -19,9 +19,10 @@ import {
   Download01Icon,
   Tick01Icon,
   Search01Icon,
+  Ticket01Icon,
 } from "@hugeicons/core-free-icons"
 import { WriteReviewDrawer } from "@/features/culture/components/write-review-drawer"
-import { ActiveAudioBar, ActiveAudioTrack } from "@/features/dashboard/components/active-audio-bar"
+import { ActiveAudioBar } from "@/features/dashboard/components/active-audio-bar"
 import { ToastBanner } from "@/features/shared/components/toast-banner"
 import type { UserReview } from "@/features/culture/data/culture-detail-data"
 import { useDestinationDetail } from "@/features/culture/hooks/use-destination-detail"
@@ -165,7 +166,6 @@ function CultureDetailContent({ id }: { id: string }) {
   const [isFav, setIsFav] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
-  // Audio Playback Hook
   const {
     activeSpotId,
     isPlayingSpot,
@@ -177,11 +177,9 @@ function CultureDetailContent({ id }: { id: string }) {
     dismissAudio,
   } = useAudioPlayback()
 
-  // Review Drawer State
   const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false)
   const [reviewsList, setReviewsList] = useState<UserReview[]>([])
 
-  // Sinkronkan ulasan lokal dengan data detail (berganti saat id / data berubah)
   useEffect(() => {
     if (detail) {
       setReviewsList(detail.reviews)
@@ -200,19 +198,6 @@ function CultureDetailContent({ id }: { id: string }) {
     return <CultureDetailErrorFallback onRetry={() => refetch()} />
   }
 
-  const activeSpot = detail.audioSpots.find((s) => s.id === activeSpotId)
-  const activeAudioTrack: ActiveAudioTrack | null = activeSpot
-    ? {
-        id: activeSpot.id,
-        title: detail.title,
-        spotName: `Spot ${activeSpot.spotNumber}: ${activeSpot.title}`,
-        location: detail.location,
-        progressPercent: isPlayingSpot ? 45 : 15,
-        currentTime: "02:15",
-        totalTime: activeSpot.duration,
-        image: detail.image,
-      }
-    : null
 
   const handleAddReview = (review: { rating: number; comment: string; tags: string[] }) => {
     const tagText = review.tags.length > 0 ? `[${review.tags.join(", ")}] ` : ""
@@ -331,15 +316,61 @@ function CultureDetailContent({ id }: { id: string }) {
           </p>
         </div>
 
+        {/* Package Expired Gateway Notice Banner */}
+        <div
+          onClick={() => router.push("/gateway/expired")}
+          className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-between gap-3 cursor-pointer hover:bg-destructive/15 transition-colors shadow-2xs"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-destructive/20 text-destructive flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-black text-foreground truncate">
+                Masa Aktif Paket Berakhir
+              </span>
+              <span className="text-[11px] text-muted-foreground truncate">
+                Klik untuk perbarui paket &amp; buka akses audio tanpa batas
+              </span>
+            </div>
+          </div>
+          <span className="text-xs font-black text-destructive shrink-0">
+            Perbarui →
+          </span>
+        </div>
+
         {/* Audio Spot Location Guide List */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold text-foreground tracking-tight">
               Daftar Titik Audio Spot
             </h2>
-            <span className="text-xs font-bold text-muted-foreground">
-              {detail.audioSpots.length} Titik Lokasi
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-muted-foreground">
+                {detail.audioSpots.length} Titik Lokasi
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  let count = 0
+                  detail.audioSpots.forEach((spot) => {
+                    if (!downloadedSpots[spot.id] && downloadProgress[spot.id] === undefined) {
+                      handleDownloadSpot({ stopPropagation: () => {} } as any, spot)
+                      count++
+                    }
+                  })
+                  if (count > 0) {
+                    setToast(`Mengunduh ${count} audio spot untuk akses luring! 📥`)
+                  } else {
+                    setToast("Semua audio spot sudah tersimpan luring 📁")
+                  }
+                  setTimeout(() => setToast(null), 3000)
+                }}
+                className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-secondary border border-border hover:bg-muted text-foreground transition-colors cursor-pointer"
+              >
+                Unduh Semua
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2.5">
@@ -352,7 +383,7 @@ function CultureDetailContent({ id }: { id: string }) {
               return (
                 <div
                   key={spot.id}
-                  onClick={() => handleTogglePlaySpot(spot)}
+                  onClick={() => handleTogglePlaySpot(spot, { title: detail.title, location: detail.location, image: detail.image })}
                   className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                     isPlayingThis
                       ? "bg-primary text-primary-foreground border-primary shadow-md"
@@ -432,7 +463,16 @@ function CultureDetailContent({ id }: { id: string }) {
                     ) : (
                       <button
                         type="button"
-                        onClick={(e) => handleDownloadSpot(e, spot)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDownloadSpot(e, spot)
+                          if (isDownloaded) {
+                            setToast(`Audio "${spot.title}" dihapus dari unduhan 🗑️`)
+                          } else {
+                            setToast(`Mengunduh audio: "${spot.title}"... 📥`)
+                          }
+                          setTimeout(() => setToast(null), 3000)
+                        }}
                         aria-label="Unduh Audio Spot"
                         className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all ${
                           isPlayingThis
@@ -457,7 +497,7 @@ function CultureDetailContent({ id }: { id: string }) {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleTogglePlaySpot(spot)
+                        handleTogglePlaySpot(spot, { title: detail.title, location: detail.location, image: detail.image })
                       }}
                       aria-label="Putar Audio Spot"
                       className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-transform ${
@@ -607,15 +647,7 @@ function CultureDetailContent({ id }: { id: string }) {
       />
 
       {/* FLOATING ACTIVE AUDIO PLAYER BAR */}
-      {activeAudioTrack && (
-        <ActiveAudioBar
-          track={activeAudioTrack}
-          isPlaying={isPlayingSpot}
-          onTogglePlay={() => setIsPlayingSpot(!isPlayingSpot)}
-          onDismiss={dismissAudio}
-          className="bottom-[76px]"
-        />
-      )}
+      <ActiveAudioBar className="bottom-[76px]" />
     </div>
   )
 }

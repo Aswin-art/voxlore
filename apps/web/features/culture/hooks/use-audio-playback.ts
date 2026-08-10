@@ -1,82 +1,50 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useCallback } from "react"
 import type { AudioSpot } from "@/features/culture/data/culture-detail-data"
+import { useAudioPlayer, type AudioTrack } from "@/features/audio/hooks/use-audio-player"
 
 export function useAudioPlayback() {
-  const [activeSpotId, setActiveSpotId] = useState<string | null>(null)
-  const [isPlayingSpot, setIsPlayingSpot] = useState(false)
-  const [downloadedSpots, setDownloadedSpots] = useState<Record<string, boolean>>({})
-  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+  const audioCtx = useAudioPlayer()
 
   const handleTogglePlaySpot = useCallback(
-    (spot: AudioSpot) => {
-      if (activeSpotId === spot.id) {
-        setIsPlayingSpot((prev) => !prev)
-      } else {
-        setActiveSpotId(spot.id)
-        setIsPlayingSpot(true)
+    (spot: AudioSpot, contextInfo?: { title: string; location: string; image: string }) => {
+      const track: AudioTrack = {
+        id: spot.id,
+        title: contextInfo?.title || "Voxlore Guide",
+        spotName: `Spot ${spot.spotNumber}: ${spot.title}`,
+        location: contextInfo?.location || "Nusantara",
+        progressPercent: 0,
+        currentTime: "00:00",
+        totalTime: spot.duration,
+        image: contextInfo?.image || "/images/prambanan-hero.png",
+        audioUrl: spot.audioUrl,
       }
+      audioCtx.togglePlayTrack(track)
     },
-    [activeSpotId]
+    [audioCtx]
   )
 
   const handleDownloadSpot = useCallback(
     (e: React.MouseEvent, spot: AudioSpot) => {
       e.stopPropagation()
-      const isAlreadyDownloaded = !!downloadedSpots[spot.id]
-
-      if (isAlreadyDownloaded) {
-        setDownloadedSpots((prev) => ({
-          ...prev,
-          [spot.id]: false,
-        }))
-        return
-      }
-
-      if (downloadProgress[spot.id] !== undefined) return
-
-      setDownloadProgress((prev) => ({ ...prev, [spot.id]: 15 }))
-
-      let progress = 15
-      const interval = setInterval(() => {
-        progress += Math.floor(Math.random() * 20) + 15
-        if (progress >= 100) {
-          progress = 100
-          clearInterval(interval)
-          setDownloadProgress((prev) => {
-            const copy = { ...prev }
-            delete copy[spot.id]
-            return copy
-          })
-          setDownloadedSpots((prev) => ({
-            ...prev,
-            [spot.id]: true,
-          }))
-        } else {
-          setDownloadProgress((prev) => ({
-            ...prev,
-            [spot.id]: progress,
-          }))
-        }
-      }, 140)
+      audioCtx.handleDownloadSpot(spot.id)
     },
-    [downloadedSpots, downloadProgress]
+    [audioCtx]
   )
 
-  const dismissAudio = useCallback(() => {
-    setActiveSpotId(null)
-    setIsPlayingSpot(false)
-  }, [])
-
   return {
-    activeSpotId,
-    isPlayingSpot,
-    setIsPlayingSpot,
-    downloadedSpots,
-    downloadProgress,
+    activeSpotId: audioCtx.currentTrack?.id || null,
+    isPlayingSpot: audioCtx.isPlaying,
+    setIsPlayingSpot: (playing: boolean) => {
+      if (playing) audioCtx.resumeAudio()
+      else audioCtx.pauseAudio()
+    },
+    downloadedSpots: audioCtx.downloadedSpots,
+    downloadProgress: audioCtx.downloadProgress,
     handleTogglePlaySpot,
     handleDownloadSpot,
-    dismissAudio,
+    dismissAudio: audioCtx.dismissAudio,
+    audioCtx,
   }
 }

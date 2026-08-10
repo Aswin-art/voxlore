@@ -101,11 +101,8 @@ export function PopularDestinations({
   }
 
   const handleCardClick = (dest: DestinationItem) => {
-    if (navigateOnClick) {
-      router.push(`/culture/${dest.id}`)
-    } else {
-      onSelectDestination?.(dest)
-    }
+    onSelectDestination?.(dest)
+    router.push(`/culture/${dest.id}`)
   }
 
   return (

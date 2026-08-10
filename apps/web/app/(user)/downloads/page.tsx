@@ -17,6 +17,8 @@ import {
 } from "@hugeicons/core-free-icons"
 import ErrorBoundary from "@/components/error-boundary"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import { useAudioPlayer, type AudioTrack } from "@/features/audio/hooks/use-audio-player"
+import { ActiveAudioBar } from "@/features/dashboard/components/active-audio-bar"
 
 export interface DownloadedAudioSpot {
   id: string
@@ -115,15 +117,17 @@ export default function DownloadsPage() {
 
 function DownloadsPageContent() {
   const router = useRouter()
+  const audioCtx = useAudioPlayer()
   const [tracks, setTracks] = useState<DownloadedAudioSpot[]>(INITIAL_AUDIO_TRACKS)
   const [searchQuery, setSearchQuery] = useState("")
   const [toast, setToast] = useState<string | null>(null)
-  const [playingId, setPlayingId] = useState<string | null>(null)
 
   const handleDeleteTrack = (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation()
     setTracks((prev) => prev.filter((item) => item.id !== id))
-    if (playingId === id) setPlayingId(null)
+    if (audioCtx.currentTrack?.id === id) {
+      audioCtx.dismissAudio()
+    }
     setToast(`Audio "${title}" dihapus dari unduhan 🗑️`)
     setTimeout(() => setToast(null), 3000)
   }
@@ -131,19 +135,30 @@ function DownloadsPageContent() {
   const handleClearAll = () => {
     if (tracks.length === 0) return
     setTracks([])
-    setPlayingId(null)
+    audioCtx.dismissAudio()
     setToast("Semua trek audio luring berhasil dihapus 🧹")
     setTimeout(() => setToast(null), 3000)
   }
 
-  const handleTogglePlay = (id: string, title: string, e: React.MouseEvent) => {
+  const handleTogglePlay = (track: DownloadedAudioSpot, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (playingId === id) {
-      setPlayingId(null)
-      setToast(`Dihentikan: "${title}" ⏸️`)
+    const audioTrack: AudioTrack = {
+      id: track.id,
+      title: track.siteName,
+      spotName: `${track.spotNumber}: ${track.title}`,
+      location: track.siteName,
+      progressPercent: 0,
+      currentTime: "00:00",
+      totalTime: track.duration,
+      image: track.image,
+    }
+
+    if (audioCtx.currentTrack?.id === track.id && audioCtx.isPlaying) {
+      audioCtx.pauseAudio()
+      setToast(`Dihentikan: "${track.title}" ⏸️`)
     } else {
-      setPlayingId(id)
-      setToast(`Memutar luring: "${title}" 🎧`)
+      audioCtx.playTrack(audioTrack)
+      setToast(`Memutar luring: "${track.title}" 🎧`)
     }
     setTimeout(() => setToast(null), 3000)
   }
@@ -257,12 +272,12 @@ function DownloadsPageContent() {
         ) : (
           <div className="flex flex-col gap-2.5 w-full min-w-0">
             {filteredTracks.map((track) => {
-              const isPlaying = playingId === track.id
+              const isPlaying = audioCtx.currentTrack?.id === track.id && audioCtx.isPlaying
 
               return (
                 <div
                   key={track.id}
-                  onClick={(e) => handleTogglePlay(track.id, track.title, e)}
+                  onClick={(e) => handleTogglePlay(track, e)}
                   className={`w-full bg-card rounded-2xl border p-3 flex items-center gap-3 transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-md min-w-0 ${
                     isPlaying
                       ? "border-primary ring-2 ring-primary/20 bg-primary/5"
@@ -334,6 +349,9 @@ function DownloadsPageContent() {
           </div>
         )}
       </div>
+
+      {/* Floating Mini Audio Player Bar */}
+      <ActiveAudioBar className="bottom-[76px]" />
     </div>
   )
 }

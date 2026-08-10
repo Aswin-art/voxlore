@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -8,27 +8,20 @@ import {
   PauseIcon,
   Cancel01Icon,
 } from "@hugeicons/core-free-icons"
+import { useAudioPlayer, type AudioTrack } from "@/features/audio/hooks/use-audio-player"
 
-export interface ActiveAudioTrack {
-  id: string
-  title: string
-  spotName: string
-  location: string
-  progressPercent: number
-  currentTime: string
-  totalTime: string
-  image: string
-}
+export type ActiveAudioTrack = AudioTrack
 
 export const CURRENT_ACTIVE_AUDIO: ActiveAudioTrack = {
   id: "prambanan-spot-1",
   title: "Candi Prambanan",
   spotName: "Spot 1: Pelataran & Gapura Utama",
   location: "Sleman, Yogyakarta",
-  progressPercent: 45,
-  currentTime: "03:15",
+  progressPercent: 0,
+  currentTime: "00:00",
   totalTime: "07:30",
   image: "/images/prambanan-hero.png",
+  audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
 }
 
 interface FloatingAudioBarProps {
@@ -41,33 +34,45 @@ interface FloatingAudioBarProps {
 }
 
 export function ActiveAudioBar({
-  track = CURRENT_ACTIVE_AUDIO,
+  track: propTrack,
   isPlaying: externalIsPlaying,
   onTogglePlay,
   onOpenPlayer,
   onDismiss,
   className = "bottom-[76px]",
 }: FloatingAudioBarProps) {
-  const [internalIsPlaying, setInternalIsPlaying] = useState(true)
+  const audioCtx = useAudioPlayer()
   const [isDismissed, setIsDismissed] = useState(false)
 
-  if (!track || isDismissed) return null
+  const activeTrack = propTrack !== undefined ? propTrack : audioCtx.currentTrack
+  const isPlaying = externalIsPlaying !== undefined ? externalIsPlaying : audioCtx.isPlaying
+  const progressPct = propTrack ? (propTrack.progressPercent || 0) : audioCtx.progressPercent
 
-  const isPlaying = externalIsPlaying !== undefined ? externalIsPlaying : internalIsPlaying
+  useEffect(() => {
+    if (activeTrack?.id && isPlaying) {
+      setIsDismissed(false)
+    }
+  }, [activeTrack?.id, isPlaying])
+
+  if (!activeTrack || isDismissed) return null
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (onTogglePlay) {
       onTogglePlay()
     } else {
-      setInternalIsPlaying(!internalIsPlaying)
+      audioCtx.togglePlayTrack(activeTrack)
     }
   }
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsDismissed(true)
-    onDismiss?.()
+    if (onDismiss) {
+      onDismiss()
+    } else {
+      audioCtx.dismissAudio()
+    }
   }
 
   return (
@@ -79,8 +84,8 @@ export function ActiveAudioBar({
         {/* Track Thumbnail */}
         <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/15">
           <Image
-            src={track.image}
-            alt={track.title}
+            src={activeTrack.image}
+            alt={activeTrack.title}
             fill
             className="object-cover"
             sizes="44px"
@@ -92,11 +97,11 @@ export function ActiveAudioBar({
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-emerald-400 animate-ping" : "bg-white/40"}`} />
             <span className="text-xs font-extrabold text-white truncate">
-              {track.title}
+              {activeTrack.title}
             </span>
           </div>
           <span className="text-[11px] text-white/80 truncate font-medium">
-            {track.spotName}
+            {activeTrack.spotName}
           </span>
         </div>
 
@@ -127,7 +132,7 @@ export function ActiveAudioBar({
       <div className="w-full h-1 bg-white/15 rounded-full overflow-hidden">
         <div
           className="h-full bg-emerald-400 rounded-full transition-all duration-300"
-          style={{ width: `${track.progressPercent}%` }}
+          style={{ width: `${progressPct}%` }}
         />
       </div>
     </div>

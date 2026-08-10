@@ -62,11 +62,6 @@ function HomeContent() {
     initials: userName.charAt(0).toUpperCase(),
   }
 
-  const handleSelectDestination = (destination: DestinationItem) => {
-    setSelectedDestination(destination)
-    setIsDetailOpen(true)
-  }
-
   const handleUnlockPass = (destination: DestinationItem) => {
     setIsDetailOpen(false)
     setToastMessage(`Pass untuk ${destination.title} berhasil diaktifkan!`)
@@ -99,10 +94,7 @@ function HomeContent() {
       />
 
       {/* 2. Popular Destinations Touch Carousel */}
-      <PopularDestinations
-        onSelectDestination={handleSelectDestination}
-        navigateOnClick={false}
-      />
+      <PopularDestinations />
 
       {/* 3. Recent Travel Plans Section */}
       <RecentPlansSection className="px-4 sm:px-5 py-4 bg-white dark:bg-background border-t border-border/60" />

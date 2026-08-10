@@ -4,6 +4,7 @@ export interface AudioSpot {
   title: string
   duration: string
   description: string
+  audioUrl?: string
 }
 
 export interface UserReview {
