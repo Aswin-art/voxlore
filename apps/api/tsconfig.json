@@ -16,7 +16,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*", "api/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }
 
