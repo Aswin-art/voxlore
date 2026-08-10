@@ -37,8 +37,10 @@ export class VacationPlanService {
     });
   }
 
-  remove(userId: string, itemId: string) {
-    return this.prisma.vacationPlanItem.deleteMany({ where: { userId, itemId } });
+  remove(userId: string, itemId: string, itemType?: string) {
+    return this.prisma.vacationPlanItem.deleteMany({
+      where: { userId, itemId, ...(itemType && { itemType }) },
+    });
   }
 
   clear(userId: string) {

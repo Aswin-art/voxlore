@@ -17,7 +17,9 @@ export default tseslint.config(
         ...globals.jest,
       },
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['prisma.config.ts', 'prisma/seed.ts'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -28,7 +28,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@workspace/ui/components/drawer"
-import { useSession } from "@/features/auth/hooks/use-auth"
+import { useLogout, useSession } from "@/features/auth/hooks/use-auth"
 
 export interface LanguageOption {
   code: string
@@ -75,6 +75,7 @@ function ProfilePageContent() {
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(LANGUAGES[0]!)
 
   const { user } = useSession()
+  const logout = useLogout()
   const userName = user?.name || "Aswin Pratama"
   const userEmail = user?.email || "aswin@voxlore.id"
   const userProfile = {
@@ -322,8 +323,14 @@ function ProfilePageContent() {
 
       {/* Logout Button */}
       <button
-        onClick={() => handleAction("Sesi telah diakhiri. Sampai jumpa kembali!")}
-        className="w-full p-4 rounded-3xl bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 text-xs font-extrabold flex items-center justify-center gap-2 transition-colors cursor-pointer mt-1"
+        disabled={logout.isPending}
+        onClick={() => {
+          logout.mutate(undefined, {
+            onSuccess: () => router.replace("/login"),
+            onError: (error) => handleAction(error.message),
+          })
+        }}
+        className="w-full p-4 rounded-3xl bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 text-xs font-extrabold flex items-center justify-center gap-2 transition-colors cursor-pointer mt-1 disabled:opacity-60"
       >
         <HugeiconsIcon icon={Logout01Icon} className="w-4 h-4" />
         <span>Keluar dari Akun</span>

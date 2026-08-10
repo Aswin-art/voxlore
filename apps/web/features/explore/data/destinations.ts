@@ -1,4 +1,4 @@
-import { ALL_DESTINATIONS, getDestinationCategories } from "@/lib/data"
+import { getDestinationCategories } from "@/lib/data"
 import type { NormalizedDestination } from "@/lib/data"
 import { DESTINATION_IMAGE_KEYS, CULTURE_IMAGE_KEYS } from "@/lib/data/image-manifest"
 
@@ -69,15 +69,23 @@ export function filterDestinations(
   return result
 }
 
-/**
- * Lapisan akses data destinasi (menyerupai API).
- * Delay kecil sengaja untuk mendemonstrasikan skeleton loading.
- */
+/** Fetch katalog destinasi dari API publik. */
 export async function fetchExploreDestinations(
   filter?: DestinationFilter,
 ): Promise<NormalizedDestination[]> {
-  await new Promise((r) => setTimeout(r, 250))
-  return filterDestinations(ALL_DESTINATIONS, filter)
+  const params = new URLSearchParams()
+  if (filter?.search?.trim()) params.set("search", filter.search.trim())
+  if (filter?.category && filter.category !== ALL) params.set("category", filter.category)
+  if (filter?.province && filter.province !== ALL) params.set("province", filter.province)
+
+  const response = await fetch(`/api/destinations?${params.toString()}`)
+  if (!response.ok) throw new Error(`Gagal memuat destinasi (${response.status})`)
+
+  const destinations = (await response.json()) as NormalizedDestination[]
+  return destinations.map((destination) => ({
+    ...destination,
+    location: destination.location || `${destination.city}, ${destination.province}`,
+  }))
 }
 
 /** Daftar kategori destinasi dari sumber data terpadu, dengan "Semua" di index 0. */

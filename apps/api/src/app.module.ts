@@ -7,9 +7,18 @@ import { AdminModule } from './features/admin/admin.module';
 import { AuthModule } from './features/auth/auth.module';
 import { PublicModule } from './features/public/public.module';
 import { VacationPlanModule } from './features/vacation-plan/vacation-plan.module';
+import { TravelPlanModule } from './features/travel-plan/travel-plan.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, AdminModule, AuthModule, PublicModule, VacationPlanModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule,
+    AdminModule,
+    AuthModule,
+    PublicModule,
+    VacationPlanModule,
+    TravelPlanModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

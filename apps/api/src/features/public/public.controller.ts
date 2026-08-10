@@ -1,5 +1,9 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, ParseIntPipe, Post, Query, Put, Req, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
+import { JwtAuthGuard } from '../auth/auth.guard';
+import type { AuthenticatedRequest } from '../auth/auth.guard';
 import { PublicService } from './public.service';
+import { CreateReviewDto } from './dto/create-review.dto';
 import type { Destination, CulturalFestival } from './catalog.types';
 
 @Controller()
@@ -24,6 +28,48 @@ export class PublicController {
   @Get('destinations/:id')
   getDestinationById(@Param('id') id: string): Promise<Destination> {
     return this.publicService.getDestinationById(id);
+  }
+
+  @Get('destinations/:id/reviews')
+  getDestinationReviews(@Param('id') id: string) {
+    return this.publicService.getDestinationReviews(id);
+  }
+
+  @Get('destinations/:id/audio/:spotNumber')
+  @Header('Cache-Control', 'public, max-age=3600')
+  async getAudioSpot(
+    @Param('id') id: string,
+    @Param('spotNumber', ParseIntPipe) spotNumber: number,
+  ) {
+    const spot = await this.publicService.getAudioSpot(id, spotNumber);
+    return { audioUrl: spot.audioUrl };
+  }
+
+  @Get('destinations/:id/audio/:spotNumber/download')
+  async downloadAudioSpot(
+    @Param('id') id: string,
+    @Param('spotNumber', ParseIntPipe) spotNumber: number,
+    @Res() response: Response,
+  ) {
+    const spot = await this.publicService.getAudioSpot(id, spotNumber);
+    response.setHeader('Content-Disposition', `attachment; filename="${spot.id}.mp3"`);
+    return response.redirect(spot.audioUrl!);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('destinations/:id/reviews')
+  createDestinationReview(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: CreateReviewDto,
+  ) {
+    return this.publicService.createDestinationReview(id, request.user.sub, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('reviews/:id/helpful')
+  toggleHelpfulVote(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    return this.publicService.toggleHelpfulVote(id, request.user.sub);
   }
 
   @Get('festivals')

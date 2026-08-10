@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, use, useMemo } from "react"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -11,6 +12,7 @@ import {
   ThumbsUpIcon,
 } from "@hugeicons/core-free-icons"
 import { WriteReviewDrawer } from "@/features/culture/components/write-review-drawer"
+import { createReview, fetchReviews, toggleHelpfulVote } from "@/features/culture/data/reviews-api"
 
 export interface UserReview {
   id: string
@@ -23,87 +25,6 @@ export interface UserReview {
   helpfulCount: number
 }
 
-const INITIAL_REVIEWS: Record<string, UserReview[]> = {
-  prambanan: [
-    {
-      id: "r1",
-      userName: "Budi Santoso",
-      userInitials: "BS",
-      rating: 5,
-      date: "2 hari lalu",
-      comment:
-        "Suara narator sangat jernih dan penjelasan legenda Roro Jonggrang di Spot 3 bikin merinding. Terasa membawa pemandu wisata pribadi!",
-      verified: true,
-      helpfulCount: 24,
-    },
-    {
-      id: "r2",
-      userName: "Dian Pratama",
-      userInitials: "DP",
-      rating: 5,
-      date: "1 minggu lalu",
-      comment:
-        "Sangat membantu saat keliling Candi Prambanan. Penjelasan relief Ramayana detail dan mudah dipahami anak-anak.",
-      verified: true,
-      helpfulCount: 18,
-    },
-    {
-      id: "r3",
-      userName: "Maya Rosalia",
-      userInitials: "MR",
-      rating: 4,
-      date: "2 minggu lalu",
-      comment:
-        "Audio pasnya oke banget, koneksinya instan tanpa perlu unduh aplikasi tambahan.",
-      verified: true,
-      helpfulCount: 12,
-    },
-    {
-      id: "r4",
-      userName: "Rian Hidayat",
-      userInitials: "RH",
-      rating: 5,
-      date: "3 minggu lalu",
-      comment:
-        "Pengalaman wisata sejarah terbaik! Sangat disarankan pakai earphone agar narasi lebih imersif.",
-      verified: true,
-      helpfulCount: 31,
-    },
-    {
-      id: "r5",
-      userName: "Siti Rahmawati",
-      userInitials: "SR",
-      rating: 5,
-      date: "1 bulan lalu",
-      comment:
-        "Relief candi jadi jauh lebih hidup saat mendengarkan penjelasan audio guide ini.",
-      verified: true,
-      helpfulCount: 15,
-    },
-    {
-      id: "r6",
-      userName: "Andi Wijaya",
-      userInitials: "AW",
-      rating: 4,
-      date: "1 bulan lalu",
-      comment: "Kualitas rekaman jernih dan alur ceritanya sangat terstruktur.",
-      verified: true,
-      helpfulCount: 8,
-    },
-    {
-      id: "r7",
-      userName: "Citra Dewi",
-      userInitials: "CD",
-      rating: 5,
-      date: "1 bulan lalu",
-      comment:
-        "Spot 2 tentang Candi Shiva luar biasa dramatis! Musik suasananya benar-benar pas.",
-      verified: true,
-      helpfulCount: 19,
-    },
-  ],
-}
-
 type FilterStar = "all" | 5 | 4 | 3 | 2 | 1
 
 export default function CultureReviewsPage({
@@ -113,9 +34,33 @@ export default function CultureReviewsPage({
 }) {
   const resolvedParams = use(params)
   const router = useRouter()
-  const defaultList = INITIAL_REVIEWS[resolvedParams.id] || INITIAL_REVIEWS.prambanan!
+  const reviewsQuery = useQuery({
+    queryKey: ["reviews", resolvedParams.id],
+    queryFn: () => fetchReviews(resolvedParams.id),
+  })
+  const createReviewMutation = useMutation({
+    mutationFn: createReview,
+    onSuccess: () => reviewsQuery.refetch(),
+  })
+  const helpfulMutation = useMutation({
+    mutationFn: toggleHelpfulVote,
+    onSuccess: () => reviewsQuery.refetch(),
+  })
 
-  const [reviewsList, setReviewsList] = useState<UserReview[]>(defaultList)
+  const reviewsList = useMemo<UserReview[]>(
+    () => (reviewsQuery.data ?? []).map((review) => ({
+      id: review.id,
+      userName: review.userName,
+      userInitials: review.userName.slice(0, 2).toUpperCase(),
+      rating: review.rating,
+      date: new Date(review.createdAt).toLocaleDateString("id-ID"),
+      comment: review.comment,
+      verified: review.verified,
+      helpfulCount: review.helpfulCount,
+    })),
+    [reviewsQuery.data],
+  )
+
   const [activeFilter, setActiveFilter] = useState<FilterStar>("all")
   const [toast, setToast] = useState<string | null>(null)
   const [helpfulClicked, setHelpfulClicked] = useState<Record<string, boolean>>({})
@@ -127,29 +72,37 @@ export default function CultureReviewsPage({
     if (activeFilter === "all") return true
     return r.rating === activeFilter
   })
+  const averageRating = reviewsList.length
+    ? reviewsList.reduce((sum, review) => sum + review.rating, 0) / reviewsList.length
+    : 0
+  const ratingPercent = (star: number) =>
+    reviewsList.length
+      ? Math.round(
+          (reviewsList.filter((review) => review.rating === star).length / reviewsList.length) * 100,
+        )
+      : 0
 
-  const toggleHelpful = (id: string) => {
-    setHelpfulClicked((prev) => ({ ...prev, [id]: !prev[id] }))
+  const toggleHelpful = async (id: string) => {
+    try {
+      const result = await helpfulMutation.mutateAsync(id)
+      setHelpfulClicked((prev) => ({ ...prev, [id]: result.helpful }))
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Gagal memperbarui vote")
+    }
   }
 
-  const handleAddReview = (review: { rating: number; comment: string; tags: string[] }) => {
-    const tagText = review.tags.length > 0 ? `[${review.tags.join(", ")}] ` : ""
-    const fullComment = `${tagText}${review.comment}`
-
-    const created: UserReview = {
-      id: `r-${Date.now()}`,
-      userName: "Aswin",
-      userInitials: "A",
-      rating: review.rating,
-      date: "Baru saja",
-      comment: fullComment,
-      verified: true,
-      helpfulCount: 0,
+  const handleAddReview = async (review: { rating: number; comment: string; tags: string[] }) => {
+    try {
+      await createReviewMutation.mutateAsync({
+        destinationId: resolvedParams.id,
+        rating: review.rating,
+        comment: review.comment,
+        tags: review.tags,
+      })
+      setToast("Ulasan Anda berhasil dikirim")
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Ulasan gagal dikirim")
     }
-
-    setReviewsList([created, ...reviewsList])
-    setToast("Ulasan Anda berhasil diterbitkan! 🎉")
-    setTimeout(() => setToast(null), 4000)
   }
 
   return (
@@ -179,7 +132,7 @@ export default function CultureReviewsPage({
             Semua Ulasan Wisatawan
           </h1>
           <span className="text-xs text-muted-foreground truncate">
-            Candi Prambanan • {reviewsList.length} Ulasan
+            {resolvedParams.id} • {reviewsList.length} Ulasan
           </span>
         </div>
       </div>
@@ -190,7 +143,7 @@ export default function CultureReviewsPage({
         <div className="p-4 rounded-3xl bg-background border border-border flex items-center gap-4 shadow-2xs">
           {/* Big Score */}
           <div className="flex flex-col items-center justify-center pr-4 border-r border-border shrink-0">
-            <span className="text-3xl font-black text-foreground leading-none">4.9</span>
+            <span className="text-3xl font-black text-foreground leading-none">{averageRating.toFixed(1)}</span>
             <div className="flex items-center gap-0.5 text-amber-500 my-1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <HugeiconsIcon key={i} icon={StarIcon} className="w-3.5 h-3.5 fill-current" />
@@ -203,27 +156,24 @@ export default function CultureReviewsPage({
 
           {/* Rating Bars (5 Stars to 1 Star) */}
           <div className="flex-1 flex flex-col gap-1.5">
-            {[
-              { star: 5, percent: 88 },
-              { star: 4, percent: 9 },
-              { star: 3, percent: 2 },
-              { star: 2, percent: 1 },
-              { star: 1, percent: 0 },
-            ].map((item) => (
-              <div key={item.star} className="flex items-center gap-2 text-[11px] font-bold">
-                <span className="w-3 text-muted-foreground text-right">{item.star}</span>
+            {[5, 4, 3, 2, 1].map((star) => {
+              const percent = ratingPercent(star)
+              return (
+              <div key={star} className="flex items-center gap-2 text-[11px] font-bold">
+                <span className="w-3 text-muted-foreground text-right">{star}</span>
                 <HugeiconsIcon icon={StarIcon} className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
                 <div className="flex-1 h-2 bg-card rounded-full overflow-hidden border border-border/50">
                   <div
                     className="h-full bg-amber-500 rounded-full transition-all duration-300"
-                    style={{ width: `${item.percent}%` }}
+                    style={{ width: `${percent}%` }}
                   />
                 </div>
                 <span className="w-7 text-[10px] text-muted-foreground text-right">
-                  {item.percent}%
+                  {percent}%
                 </span>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
@@ -307,14 +257,14 @@ export default function CultureReviewsPage({
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed pl-0.5">
-                    "{rev.comment}"
+                    &quot;{rev.comment}&quot;
                   </p>
 
                   <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
                     <span className="text-[10px] text-muted-foreground">Pengunjung Terverifikasi</span>
 
                     <button
-                      onClick={() => toggleHelpful(rev.id)}
+                      onClick={() => void toggleHelpful(rev.id)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
                         isHelpful
                           ? "bg-primary/15 text-primary font-extrabold"

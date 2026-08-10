@@ -44,6 +44,9 @@ export class ManageEventsService {
         description: '',
         image: '',
         type: dto.organizer,
+        organizer: dto.organizer,
+        status: dto.status ?? 'Mendatang',
+        attendees: dto.attendees ?? '—',
       },
     });
     return this.toEvent(festival, dto.status, dto.attendees);
@@ -64,7 +67,9 @@ export class ManageEventsService {
             city: dto.location,
             location: dto.location,
           }),
-          ...(dto.organizer !== undefined && { type: dto.organizer }),
+          ...(dto.organizer !== undefined && { type: dto.organizer, organizer: dto.organizer }),
+          ...(dto.status !== undefined && { status: dto.status }),
+          ...(dto.attendees !== undefined && { attendees: dto.attendees }),
         },
       });
       return this.toEvent(festival, dto.status, dto.attendees);
@@ -95,18 +100,21 @@ export class ManageEventsService {
       date: string;
       location: string;
       type: string;
+      organizer?: string | null;
+      status?: string;
+      attendees?: string;
     },
-    status = 'Mendatang',
-    attendees = '0',
+    status?: string,
+    attendees?: string,
   ): CulturalEvent {
     return {
       id: festival.id,
       title: festival.title,
       date: festival.date,
       location: festival.location,
-      organizer: festival.type,
-      status,
-      attendees,
+      organizer: festival.organizer ?? festival.type,
+      status: status ?? festival.status ?? 'Mendatang',
+      attendees: attendees ?? festival.attendees ?? '—',
     };
   }
 }
