@@ -17,16 +17,17 @@ import {
 } from "@hugeicons/core-free-icons"
 import { useFestivals } from "@/features/events/hooks/use-festivals"
 import { useProvinces } from "@/features/shared/hooks/use-provinces"
+import { useCreateTravelPlan } from "@/features/events/hooks/use-travel-plans"
 import type { TravelPlanFilter } from "@/features/events/types"
 import { festivalTypeLabel } from "@/features/events/types"
 import { SearchableSelect } from "@/features/shared/components/searchable-select"
 import ErrorBoundary from "@/components/error-boundary"
 import { Skeleton } from "@workspace/ui/components/skeleton"
-import { apiRequest } from "@/features/auth/data/api-client"
 
 function SelectFestivalPlanContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const createPlanMutation = useCreateTravelPlan()
 
   const initialStart = searchParams.get("start") || ""
   const initialEnd = searchParams.get("end") || ""
@@ -69,15 +70,17 @@ function SelectFestivalPlanContent() {
     const chosenEvents = (events ?? []).filter((event) => selectedFestivalIds[event.id])
     const items = chosenEvents.length > 0 ? chosenEvents : events?.[0] ? [events[0]] : []
 
-    await apiRequest("/travel-plans", {
-      method: "POST",
-      body: JSON.stringify({
+    try {
+      await createPlanMutation.mutateAsync({
         title: `Liburan Budaya ${provinceName}`,
         province: provinceName,
         dateRange,
         festivalIds: items.map((event) => event.id),
-      }),
-    }).then(() => router.push("/events")).catch(() => undefined)
+      })
+      router.push("/events")
+    } catch {
+      // Ignore or handled
+    }
   }
 
   return (

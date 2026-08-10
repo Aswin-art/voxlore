@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HomeHeader } from "@/features/dashboard/components/home-header"
 import { ExploreGrid } from "@/features/dashboard/components/explore-grid"
@@ -10,6 +10,7 @@ import { DestinationDetailSheet } from "@/features/dashboard/components/destinat
 import { ActiveAudioBar } from "@/features/dashboard/components/active-audio-bar"
 import ErrorBoundary from "@/components/error-boundary"
 import { useSession } from "@/features/auth/hooks/use-auth"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export default function HomePage() {
   return (
@@ -25,41 +26,35 @@ function HomePageSkeleton() {
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-5 pb-28 animate-pulse">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-full bg-muted" />
+        <Skeleton className="w-11 h-11 rounded-full" />
         <div className="flex flex-col gap-1.5 flex-1">
-          <div className="w-24 h-3 rounded-full bg-muted" />
-          <div className="w-32 h-4 rounded-full bg-muted" />
+          <Skeleton className="w-24 h-3 rounded-full" />
+          <Skeleton className="w-32 h-4 rounded-full" />
         </div>
       </div>
-      <div className="h-10 rounded-2xl bg-muted w-full" />
+      <Skeleton className="h-10 rounded-2xl w-full" />
       <div className="grid grid-cols-2 gap-3">
-        <div className="h-24 rounded-3xl bg-muted" />
-        <div className="h-24 rounded-3xl bg-muted" />
+        <Skeleton className="h-24 rounded-3xl" />
+        <Skeleton className="h-24 rounded-3xl" />
       </div>
-      <div className="h-40 rounded-3xl bg-muted" />
-      <div className="h-40 rounded-3xl bg-muted" />
+      <Skeleton className="h-40 rounded-3xl" />
+      <Skeleton className="h-40 rounded-3xl" />
     </div>
   )
 }
 
 function HomeContent() {
   const router = useRouter()
-  const [isMounted, setIsMounted] = useState(false)
   const [selectedDestination, setSelectedDestination] = useState<DestinationItem | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
-  const { user } = useSession()
+  const { user, isLoading } = useSession()
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  const userName = isMounted && user?.name ? user.name : "Aswin"
   const userProfile = {
-    name: userName,
+    name: user?.name || (isLoading ? "..." : "Teman Voxlore"),
     greeting: "Selamat Datang,",
-    initials: userName.charAt(0).toUpperCase(),
+    initials: user?.name ? user.name.charAt(0).toUpperCase() : "V",
   }
 
   const handleUnlockPass = (destination: DestinationItem) => {

@@ -28,6 +28,7 @@ import { ToastBanner } from "@/features/shared/components/toast-banner"
 import { createReview } from "@/features/culture/data/reviews-api"
 import { useDestinationDetail } from "@/features/culture/hooks/use-destination-detail"
 import { useAudioPlayback } from "@/features/culture/hooks/use-audio-playback"
+import { useFavorites, useToggleFavorite } from "@/features/favorites/hooks/use-favorites"
 import ErrorBoundary from "@/components/error-boundary"
 
 export default function CultureDetailPage({
@@ -164,8 +165,24 @@ function CultureDetailContent({ id }: { id: string }) {
   const router = useRouter()
   const { data: detail, isPending, isError, error, refetch } = useDestinationDetail(id)
 
-  const [isFav, setIsFav] = useState(false)
+  const { isFavorite } = useFavorites()
+  const toggleFavoriteMutation = useToggleFavorite()
+  const isFav = isFavorite(id)
+
   const [toast, setToast] = useState<string | null>(null)
+
+  const handleToggleFavorite = () => {
+    toggleFavoriteMutation.mutate(id, {
+      onSuccess: (res) => {
+        setToast(res.message)
+        setTimeout(() => setToast(null), 3000)
+      },
+      onError: (err) => {
+        setToast(err instanceof Error ? err.message : "Gagal mengubah status favorit")
+        setTimeout(() => setToast(null), 3000)
+      },
+    })
+  }
 
   const {
     activeSpotId,
@@ -241,7 +258,7 @@ function CultureDetailContent({ id }: { id: string }) {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsFav(!isFav)}
+              onClick={handleToggleFavorite}
               aria-label="Simpan Favorit"
               className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 transition-colors cursor-pointer border border-white/20"
             >
@@ -307,29 +324,6 @@ function CultureDetailContent({ id }: { id: string }) {
           <p className="text-xs text-muted-foreground leading-relaxed">
             {detail.description}
           </p>
-        </div>
-
-        {/* Package Expired Gateway Notice Banner */}
-        <div
-          onClick={() => router.push("/gateway/expired")}
-          className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-between gap-3 cursor-pointer hover:bg-destructive/15 transition-colors shadow-2xs"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-destructive/20 text-destructive flex items-center justify-center shrink-0">
-              <HugeiconsIcon icon={Ticket01Icon} className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black text-foreground truncate">
-                Masa Aktif Paket Berakhir
-              </span>
-              <span className="text-[11px] text-muted-foreground truncate">
-                Klik untuk perbarui paket &amp; buka akses audio tanpa batas
-              </span>
-            </div>
-          </div>
-          <span className="text-xs font-black text-destructive shrink-0">
-            Perbarui →
-          </span>
         </div>
 
         {/* Audio Spot Location Guide List */}

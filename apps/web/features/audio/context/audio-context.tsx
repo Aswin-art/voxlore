@@ -55,7 +55,7 @@ export interface AudioContextValue {
 const AudioContext = createContext<AudioContextValue | null>(null)
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
-  const [currentTrack, setCurrentTrack] = useState<AudioTrack | null>(INITIAL_DEMO_TRACK)
+  const [currentTrack, setCurrentTrack] = useState<AudioTrack | null>(null)
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
   const [progressPercent, setProgressPercent] = useState<number>(0)
   const [currentTimeStr, setCurrentTimeStr] = useState<string>("00:00")

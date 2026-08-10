@@ -1,35 +1,31 @@
 import type { NextConfig } from "next"
 
+// In production (Vercel), set NEXT_PUBLIC_API_URL to your NestJS backend URL
+// e.g. https://your-api.up.railway.app
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
+
+const API_ROUTES = [
+  "auth",
+  "destinations",
+  "festivals",
+  "downloads",
+  "favorites",
+  "packages",
+  "profile",
+  "scan",
+  "security",
+  "admin",
+  "vacation-plan",
+  "travel-plans",
+]
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@workspace/ui"],
   async rewrites() {
-    return [
-      {
-        source: "/api/auth/:path*",
-        destination: "http://localhost:3001/auth/:path*",
-      },
-      {
-        source: "/api/destinations/:path*",
-        destination: "http://localhost:3001/destinations/:path*",
-      },
-      {
-        source: "/api/festivals/:path*",
-        destination: "http://localhost:3001/festivals/:path*",
-      },
-      {
-        source: "/api/admin/:path*",
-        destination: "http://localhost:3001/admin/:path*",
-      },
-      {
-        source: "/api/vacation-plan/:path*",
-        destination: "http://localhost:3001/vacation-plan/:path*",
-      },
-      {
-        source: "/api/travel-plans/:path*",
-        destination: "http://localhost:3001/travel-plans/:path*",
-      },
-
-    ]
+    return API_ROUTES.map((route) => ({
+      source: `/api/${route}/:path*`,
+      destination: `${API_URL}/${route}/:path*`,
+    }))
   },
 }
 

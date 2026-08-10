@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -27,7 +27,8 @@ import type {
   LoginFormValues,
   RegisterFormValues,
 } from "../data/auth-schema"
-import { useLogin, useRegister } from "../hooks/use-auth"
+import { useLogin, useRegister, useSession } from "../hooks/use-auth"
+import type { AuthResponse } from "../data/auth-api"
 
 interface AuthCardProps {
   mode: "login" | "register"
@@ -43,6 +44,20 @@ function AuthForm({ mode }: AuthCardProps) {
   const isLogin = mode === "login"
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+
+  const { user: sessionUser, isAuthenticated } = useSession()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && sessionUser) {
+      const role = sessionUser.role?.toUpperCase() || ""
+      if (role.includes("ADMIN")) {
+        router.push("/dashboard")
+      } else {
+        router.push("/home")
+      }
+    }
+  }, [isAuthenticated, sessionUser, router])
 
   const login = useLogin()
   const register = useRegister()
@@ -73,8 +88,14 @@ function AuthForm({ mode }: AuthCardProps) {
           email: values.email,
           password: values.password,
         }
-    run(payload as never).then(() => {
-      router.push("/home")
+    run(payload as never).then((res) => {
+      const user = (res as AuthResponse | undefined)?.user
+      const role = user?.role?.toUpperCase() || ""
+      if (role.includes("ADMIN")) {
+        router.push("/dashboard")
+      } else {
+        router.push("/home")
+      }
     })
   }
 

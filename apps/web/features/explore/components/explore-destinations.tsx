@@ -19,8 +19,10 @@ import {
 import type { NormalizedDestination } from "@/lib/data"
 import ErrorBoundary from "@/components/error-boundary"
 import { useDestinations, useDestinationCategories } from "@/features/explore/hooks/use-destinations"
+import { useFavorites, useToggleFavorite } from "@/features/favorites/hooks/use-favorites"
 import { useProvinces } from "@/features/shared/hooks/use-provinces"
 import { SearchableSelect } from "@/features/shared/components/searchable-select"
+import { ToastBanner } from "@/features/shared/components/toast-banner"
 import { DestinationItem } from "@/features/dashboard/components/popular-destinations"
 
 export interface ExtendedDestinationItem extends DestinationItem {
@@ -30,7 +32,7 @@ export interface ExtendedDestinationItem extends DestinationItem {
 }
 
 /** Adaptasi NormalizedDestination menjadi shape kartu explore. */
-function toExtendedItem(d: NormalizedDestination, index: number): ExtendedDestinationItem {
+function toExtendedItem(d: NormalizedDestination & { audioSpots?: Array<unknown> }): ExtendedDestinationItem {
   return {
     id: d.id,
     title: d.title,
@@ -42,7 +44,7 @@ function toExtendedItem(d: NormalizedDestination, index: number): ExtendedDestin
     description: d.description,
     category: d.category,
     province: d.province,
-    audioSpotsCount: (index % 4) + 3,
+    audioSpotsCount: d.audioSpots?.length ?? 4,
   }
 }
 
@@ -106,9 +108,10 @@ function ExploreErrorFallback({ onRetry }: { onRetry: () => void }) {
 export function ExploreContent() {
   const router = useRouter()
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({
-    prambanan: true,
-  })
+  const [toast, setToast] = useState<string | null>(null)
+
+  const { isFavorite } = useFavorites()
+  const toggleFavoriteMutation = useToggleFavorite()
 
   const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""))
   const [selectedCategory, setSelectedCategory] = useQueryState("category", parseAsString.withDefault("Semua"))
@@ -134,7 +137,16 @@ export function ExploreContent() {
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }))
+    toggleFavoriteMutation.mutate(id, {
+      onSuccess: (res) => {
+        setToast(res.message)
+        setTimeout(() => setToast(null), 3000)
+      },
+      onError: (err) => {
+        setToast(err instanceof Error ? err.message : "Gagal mengubah status favorit")
+        setTimeout(() => setToast(null), 3000)
+      },
+    })
   }
 
   const handleOpenDetail = (item: DestinationItem) => {
@@ -144,12 +156,14 @@ export function ExploreContent() {
   const categoriesOptions = categoriesQuery.isPending ? ["Semua"] : (categoriesQuery.data ?? ["Semua"])
   const provincesOptions = provinces ? ["Semua", ...provinces.map((p) => p.name)] : ["Semua"]
 
-  const items: ExtendedDestinationItem[] = (destinations ?? []).map((d, i) =>
-    toExtendedItem(d, i),
+  const items: ExtendedDestinationItem[] = (destinations ?? []).map((d) =>
+    toExtendedItem(d),
   )
 
   return (
     <div className="flex flex-col pb-28 relative w-full min-w-0">
+      <ToastBanner message={toast} onDismiss={() => setToast(null)} />
+      {/* Sticky Header Navigation & Search Bar */}
       {/* Sticky Header Navigation & Search Bar */}
       <header className="sticky top-0 z-30 bg-card p-4 sm:p-5 border-b border-border/60 shadow-xs flex flex-col gap-3.5 w-full min-w-0">
         {/* Header Title */}
@@ -315,7 +329,7 @@ export function ExploreContent() {
             </div>
           ) : (
             items.map((item) => {
-              const isFav = !!favorites[item.id]
+              const isFav = isFavorite(item.id)
               return (
                 <div
                   key={item.id}

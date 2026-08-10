@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "vertical-slice-architecture": {
+      "source": "mryll/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vertical-slice-architecture/SKILL.md",
+      "computedHash": "cd55c5721934ae5c98298d4f5256511a1c8f468eb5a9ff46015bcd8c37188ac7"
+    }
+  }
+}

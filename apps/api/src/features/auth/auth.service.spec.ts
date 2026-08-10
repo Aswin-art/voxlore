@@ -24,6 +24,13 @@ describe('AuthService session response', () => {
       session: {
         create: jest.fn().mockResolvedValue({}),
       },
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      subscriptionPackage: {
+        upsert: jest.fn().mockResolvedValue({}),
+      },
     };
     const service = new AuthService(prisma as never);
 

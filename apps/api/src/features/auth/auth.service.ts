@@ -54,6 +54,43 @@ export class AuthService {
     return token;
   }
 
+  private async ensureFreePackage(
+    userId: string,
+    prisma: PrismaService | PrismaTransactionClient = this.prisma,
+  ) {
+    const existingSub = await prisma.userSubscription.findFirst({
+      where: { userId },
+    });
+
+    if (!existingSub) {
+      await prisma.subscriptionPackage.upsert({
+        where: { id: 'free' },
+        update: {},
+        create: {
+          id: 'free',
+          name: 'Sampel Gratis',
+          subtitle: 'Freemium — membangun kepercayaan sebelum upgrade',
+          price: 'Rp 0',
+          numericPrice: 0,
+          period: 'selamanya',
+          bestSeller: false,
+          features: [
+            'Akses 3 Audio Guide populer',
+            'Kualitas suara standar (64 kbps)',
+          ],
+        },
+      });
+
+      await prisma.userSubscription.create({
+        data: {
+          userId,
+          planId: 'free',
+          status: 'Aktif • Sampel Gratis',
+        },
+      });
+    }
+  }
+
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
     try {
@@ -65,6 +102,7 @@ export class AuthService {
             passwordHash: await bcrypt.hash(dto.password, 12),
           },
         });
+        await this.ensureFreePackage(user.id, tx);
         const token = await this.createSession(user.id, tx);
         return { user: this.toPublicUser(user), token };
       });
@@ -92,21 +130,40 @@ export class AuthService {
     return { user: this.toPublicUser(user), token };
   }
 
+  private sessionCache = new Map<string, { data: { sub: string; email: string; role: string }; expiresAt: number }>();
+
   async getSession(token: string) {
+    const tokenHash = this.hashToken(token);
+    const cached = this.sessionCache.get(tokenHash);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
     const session = await this.prisma.session.findFirst({
-      where: { tokenHash: this.hashToken(token), expiresAt: { gt: new Date() } },
+      where: { tokenHash, expiresAt: { gt: new Date() } },
       include: { user: true },
     });
     if (!session) throw new UnauthorizedException('Sesi tidak valid');
-    return {
+
+    const result = {
       sub: session.user.id,
       email: session.user.email,
       role: session.user.role,
     };
+
+    // Cache valid session in memory for 10 seconds
+    this.sessionCache.set(tokenHash, {
+      data: result,
+      expiresAt: Date.now() + 10_000,
+    });
+
+    return result;
   }
 
   async logout(token: string): Promise<void> {
-    await this.prisma.session.deleteMany({ where: { tokenHash: this.hashToken(token) } });
+    const tokenHash = this.hashToken(token);
+    this.sessionCache.delete(tokenHash);
+    await this.prisma.session.deleteMany({ where: { tokenHash } });
   }
 
   async getProfile(userId: string) {

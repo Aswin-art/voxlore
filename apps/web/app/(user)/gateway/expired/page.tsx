@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -12,36 +13,47 @@ import {
   HeadphonesIcon,
 } from "@hugeicons/core-free-icons"
 import { ActiveAudioBar } from "@/features/dashboard/components/active-audio-bar"
+import { apiRequest } from "@/features/auth/data/api-client"
+import { Skeleton } from "@workspace/ui/components/skeleton"
+
+export interface ApiSubscriptionPackage {
+  id: string
+  name: string
+  subtitle: string
+  price: string
+  numericPrice: number
+  period: string
+  bestSeller?: boolean
+  features: string[]
+}
 
 export default function PackageExpiredGatewayPage() {
   const router = useRouter()
+  const [packages, setPackages] = useState<ApiSubscriptionPackage[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const renewalOptions = [
-    {
-      id: "weekly",
-      name: "Weekly Pass",
-      duration: "7 Hari Akses",
-      price: "Rp 29.000",
-      desc: "Cocok untuk liburan singkat",
-      isPopular: false,
-    },
-    {
-      id: "monthly",
-      name: "Monthly Pass",
-      duration: "30 Hari Akses",
-      price: "Rp 59.000",
-      desc: "Pilihan paling hemat & populer",
-      isPopular: true,
-    },
-    {
-      id: "annual",
-      name: "Annual VIP Pass",
-      duration: "1 Tahun Akses",
-      price: "Rp 199.000",
-      desc: "Untuk traveler Nusantara sejati",
-      isPopular: false,
-    },
-  ]
+  useEffect(() => {
+    let isMounted = true
+    setIsLoading(true)
+    apiRequest<ApiSubscriptionPackage[]>("/packages")
+      .then((data) => {
+        if (isMounted) {
+          setPackages(Array.isArray(data) ? data : [])
+        }
+      })
+      .catch(() => {
+        if (isMounted) setPackages([])
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const paidPackages = packages.filter((pkg) => pkg.numericPrice > 0)
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground relative w-full min-w-0 pb-28">
@@ -119,36 +131,44 @@ export default function PackageExpiredGatewayPage() {
             </button>
           </div>
 
-          <div className="flex flex-col gap-2.5">
-            {renewalOptions.map((opt) => (
-              <div
-                key={opt.id}
-                onClick={() => router.push("/packages")}
-                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:shadow-md ${
-                  opt.isPopular
-                    ? "border-primary bg-card ring-1 ring-primary/20"
-                    : "border-border bg-card hover:border-border/80"
-                }`}
-              >
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-foreground truncate">{opt.name}</span>
-                    {opt.isPopular && (
-                      <span className="px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[9px] font-black uppercase">
-                        Populer
-                      </span>
-                    )}
+          {isLoading ? (
+            <div className="flex flex-col gap-2.5">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {paidPackages.map((opt) => (
+                <div
+                  key={opt.id}
+                  onClick={() => router.push("/packages")}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:shadow-md ${
+                    opt.bestSeller
+                      ? "border-primary bg-card ring-1 ring-primary/20"
+                      : "border-border bg-card hover:border-border/80"
+                  }`}
+                >
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-foreground truncate">{opt.name}</span>
+                      {opt.bestSeller && (
+                        <span className="px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[9px] font-black uppercase">
+                          Populer
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground truncate">{opt.subtitle}</span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground truncate">{opt.desc}</span>
-                </div>
 
-                <div className="flex flex-col items-end shrink-0">
-                  <span className="text-sm font-black text-foreground">{opt.price}</span>
-                  <span className="text-[10px] text-muted-foreground font-bold">{opt.duration}</span>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="text-sm font-black text-foreground">{opt.price}</span>
+                    <span className="text-[10px] text-muted-foreground font-bold">/{opt.period}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Primary Action Buttons */}
@@ -158,7 +178,7 @@ export default function PackageExpiredGatewayPage() {
             className="w-full py-3.5 px-5 rounded-2xl bg-primary text-primary-foreground font-extrabold text-xs flex items-center justify-center gap-2 shadow-md hover:opacity-90 transition-opacity cursor-pointer"
           >
             <HugeiconsIcon icon={Tick01Icon} className="w-4 h-4" />
-            <span>Perbarui Paket Berlangganan Now</span>
+            <span>Perbarui Paket Berlangganan Sekarang</span>
           </button>
 
           <button
