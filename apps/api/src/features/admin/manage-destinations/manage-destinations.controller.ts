@@ -1,37 +1,45 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
-  Delete,
-  Body,
-  Param,
+  UseGuards,
 } from '@nestjs/common';
-import { ManageDestinationsService } from './manage-destinations.service';
+import { JwtAuthGuard } from '../../auth/auth.guard';
+import { RolesGuard } from '../../auth/roles.guard';
+import { Roles } from '../../auth/roles.decorator';
+import {
+  ManageDestinationsService,
+  AdminDestination,
+} from './manage-destinations.service';
 import {
   CreateDestinationDto,
   UpdateDestinationDto,
 } from './manage-destinations.dto';
-import { Destination } from '../admin.store';
 
 @Controller('admin/destinations')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN')
 export class ManageDestinationsController {
   constructor(
     private readonly destinationsService: ManageDestinationsService,
   ) {}
 
   @Get()
-  findAll(): Destination[] {
+  findAll(): Promise<AdminDestination[]> {
     return this.destinationsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Destination {
+  findOne(@Param('id') id: string): Promise<AdminDestination> {
     return this.destinationsService.findOne(id);
   }
 
   @Post()
-  create(@Body() dto: CreateDestinationDto): Destination {
+  create(@Body() dto: CreateDestinationDto): Promise<AdminDestination> {
     return this.destinationsService.create(dto);
   }
 
@@ -39,12 +47,12 @@ export class ManageDestinationsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateDestinationDto,
-  ): Destination {
+  ): Promise<AdminDestination> {
     return this.destinationsService.update(id, dto);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string): { success: boolean } {
+  delete(@Param('id') id: string): Promise<{ success: boolean }> {
     return this.destinationsService.delete(id);
   }
 }

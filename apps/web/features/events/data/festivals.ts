@@ -1,4 +1,3 @@
-import { ALL_FESTIVALS, getFestivalsInRange } from "@/lib/data"
 import type { CulturalFestival } from "@/lib/data"
 import type { TravelPlanFilter } from "../types"
 
@@ -36,9 +35,7 @@ export function filterFestivals(
   }
 
   if (start && end) {
-    result = getFestivalsInRange(start, end).filter((f) =>
-      result.some((r) => r.id === f.id),
-    )
+    result = result.filter((f) => f.startDate <= end && f.endDate >= start)
   } else if (start) {
     result = result.filter((f) => f.endDate >= start)
   } else if (end) {
@@ -48,27 +45,33 @@ export function filterFestivals(
   return result
 }
 
-/**
- * Lapisan akses data async (menyerupai API).
- * Delay kecil sengaja untuk mendemonstrasikan skeleton loading.
- */
 export async function fetchFestivals(
   filter?: TravelPlanFilter,
 ): Promise<CulturalFestival[]> {
-  await new Promise((r) => setTimeout(r, 250))
-  return filterFestivals(ALL_FESTIVALS, filter)
+  const params = new URLSearchParams()
+  if (filter?.search?.trim()) params.set("search", filter.search.trim())
+  if (filter?.province && filter.province !== ALL) params.set("province", filter.province)
+  if (filter?.start) params.set("start", filter.start)
+  if (filter?.end) params.set("end", filter.end)
+
+  const response = await fetch(`/api/festivals?${params.toString()}`)
+  if (!response.ok) throw new Error(`Gagal memuat festival (${response.status})`)
+  return filterFestivals((await response.json()) as CulturalFestival[], filter)
 }
 
-/** Daftar provinsi unik (urutan tetap) dengan "Semua" di index 0. */
+/** Daftar provinsi unik dari katalog festival. */
 export async function fetchProvincesInEvents(): Promise<string[]> {
-  const set = new Set<string>()
-  for (const f of ALL_FESTIVALS) set.add(f.province)
-  return [ALL, ...Array.from(set)]
+  const response = await fetch("/api/provinces")
+  if (!response.ok) throw new Error(`Gagal memuat provinsi (${response.status})`)
+  const payload = (await response.json()) as { data: { name: string }[] }
+  return [ALL, ...payload.data.map((province) => province.name)]
 }
 
 export async function fetchFestivalById(
   id: string,
 ): Promise<CulturalFestival | undefined> {
-  await new Promise((r) => setTimeout(r, 250))
-  return ALL_FESTIVALS.find((f) => f.id === id)
+  const response = await fetch(`/api/festivals/${encodeURIComponent(id)}`)
+  if (response.status === 404) return undefined
+  if (!response.ok) throw new Error(`Gagal memuat festival (${response.status})`)
+  return (await response.json()) as CulturalFestival
 }

@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  MEMBER
+  SUPER_ADMIN
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String             @id @default(uuid()) @db.Uuid
+  name          String
+  email         String             @unique
+  passwordHash  String
+  phone         String?
+  bio           String?
+  role          UserRole           @default(MEMBER)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  reviews       Review[]
+  reviewVotes   ReviewVote[]
+  vacationItems VacationPlanItem[]
+  travelPlans   TravelPlan[]
+  sessions      Session[]
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @unique
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Destination {
+  id          String      @id
+  title       String
+  city        String
+  province    String
+  location    String
+  region      String
+  category    String
+  description String
+  image       String
+  price       String
+  rating      Float
+  duration    String
+  listeners   String
+  isPopular   Boolean     @default(false)
+  audioCount  Int         @default(0)
+  status      String      @default("Aktif")
+  passPrice   String      @default("Rp 0")
+  subtitle    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  audioSpots  AudioSpot[]
+  reviews     Review[]
+
+  @@index([province])
+  @@index([region])
+  @@index([category])
+}
+
+model AudioSpot {
+  id            String      @id @default(uuid()) @db.Uuid
+  destinationId String
+  spotNumber    Int
+  title         String
+  duration      String
+  description   String
+  audioUrl      String?
+  isFree        Boolean     @default(false)
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([destinationId, spotNumber])
+  @@index([destinationId])
+}
+
+model Festival {
+  id              String           @id
+  title           String
+  province        String
+  region          String
+  city            String
+  location        String
+  startDate       String
+  endDate         String
+  date            String
+  monthBadge      String
+  dayBadge        String
+  description     String
+  image           String
+  videoUrl        String?
+  type            String
+  isSponsored     Boolean          @default(false)
+  organizer       String?
+  status          String           @default("Mendatang")
+  attendees       String           @default("—")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  travelPlanItems TravelPlanItem[]
+
+  @@index([province])
+  @@index([region])
+  @@index([type])
+  @@index([startDate, endDate])
+}
+
+model Review {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String?      @db.Uuid
+  destinationId  String?
+  userName       String
+  destination    String
+  rating         Int
+  comment        String
+  status         ReviewStatus @default(PENDING)
+  verified       Boolean      @default(false)
+  helpfulCount   Int          @default(0)
+  tags           String[]     @default([])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  destinationRef Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
+  votes          ReviewVote[]
+
+  @@index([status])
+  @@index([destinationId])
+}
+
+model ReviewVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  reviewId  String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([userId])
+}
+
+model VacationPlanItem {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @db.Uuid
+  itemId   String
+  itemType String
+  title    String
+  location String
+  date     String?
+  image    String?
+  addedAt  DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId, addedAt])
+}
+
+model TravelPlan {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  title     String
+  province  String
+  dateRange String
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     TravelPlanItem[]
+
+  @@index([userId, createdAt])
+}
+
+model TravelPlanItem {
+  id           String     @id @default(uuid()) @db.Uuid
+  travelPlanId String     @db.Uuid
+  festivalId   String
+  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id], onDelete: Cascade)
+  festival     Festival   @relation(fields: [festivalId], references: [id], onDelete: Restrict)
+
+  @@unique([travelPlanId, festivalId])
+  @@index([travelPlanId])
+}

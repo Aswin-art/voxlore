@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -29,58 +29,7 @@ export interface DownloadedAudioSpot {
   image: string
 }
 
-const INITIAL_AUDIO_TRACKS: DownloadedAudioSpot[] = [
-  {
-    id: "borobudur-spot-1",
-    title: "Relief Karmawibhangga & Hukum Karma",
-    siteName: "Candi Borobudur",
-    siteId: "borobudur",
-    spotNumber: "Spot 01",
-    duration: "8 min",
-    size: "6.5 MB",
-    image: "/images/hero-background.png",
-  },
-  {
-    id: "borobudur-spot-2",
-    title: "Stupa Utama & Keheningan Arupadhatu",
-    siteName: "Candi Borobudur",
-    siteId: "borobudur",
-    spotNumber: "Spot 05",
-    duration: "12 min",
-    size: "9.8 MB",
-    image: "/images/hero-background.png",
-  },
-  {
-    id: "prambanan-spot-1",
-    title: "Legenda Roro Jonggrang & Arca Durga",
-    siteName: "Candi Prambanan",
-    siteId: "prambanan",
-    spotNumber: "Spot 01",
-    duration: "10 min",
-    size: "8.2 MB",
-    image: "/images/prambanan-hero.png",
-  },
-  {
-    id: "prambanan-spot-2",
-    title: "Relief Epik Ramayana di Candi Shiva",
-    siteName: "Candi Prambanan",
-    siteId: "prambanan",
-    spotNumber: "Spot 03",
-    duration: "15 min",
-    size: "11.4 MB",
-    image: "/images/prambanan-hero.png",
-  },
-  {
-    id: "uluwatu-spot-1",
-    title: "Kidung Pembuka & Tari Kecak Sunset",
-    siteName: "Tari Kecak Uluwatu",
-    siteId: "uluwatu",
-    spotNumber: "Spot 01",
-    duration: "7 min",
-    size: "5.6 MB",
-    image: "/images/bali-culture.png",
-  },
-]
+const DOWNLOADS_KEY = "voxlore.audio-downloads"
 
 function DownloadsPageSkeleton() {
   return (
@@ -115,14 +64,27 @@ export default function DownloadsPage() {
 
 function DownloadsPageContent() {
   const router = useRouter()
-  const [tracks, setTracks] = useState<DownloadedAudioSpot[]>(INITIAL_AUDIO_TRACKS)
+  const [tracks, setTracks] = useState<DownloadedAudioSpot[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(DOWNLOADS_KEY) ?? "{}") as Record<string, DownloadedAudioSpot>
+      setTracks(Object.values(stored))
+    } catch {
+      setTracks([])
+    }
+  }, [])
   const [toast, setToast] = useState<string | null>(null)
   const [playingId, setPlayingId] = useState<string | null>(null)
 
   const handleDeleteTrack = (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setTracks((prev) => prev.filter((item) => item.id !== id))
+    setTracks((prev) => {
+      const next = prev.filter((item) => item.id !== id)
+      localStorage.setItem(DOWNLOADS_KEY, JSON.stringify(Object.fromEntries(next.map((item) => [item.id, item]))))
+      return next
+    })
     if (playingId === id) setPlayingId(null)
     setToast(`Audio "${title}" dihapus dari unduhan 🗑️`)
     setTimeout(() => setToast(null), 3000)
@@ -131,6 +93,7 @@ function DownloadsPageContent() {
   const handleClearAll = () => {
     if (tracks.length === 0) return
     setTracks([])
+    localStorage.removeItem(DOWNLOADS_KEY)
     setPlayingId(null)
     setToast("Semua trek audio luring berhasil dihapus 🧹")
     setTimeout(() => setToast(null), 3000)

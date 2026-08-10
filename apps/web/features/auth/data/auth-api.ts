@@ -1,4 +1,5 @@
 import type { LoginFormValues, RegisterFormValues } from "./auth-schema"
+import { apiRequest } from "./api-client"
 
 export interface AuthUser {
   id: string
@@ -10,7 +11,6 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  accessToken: string
   user: AuthUser
 }
 
@@ -21,6 +21,7 @@ async function authRequest<T>(
   const res = await fetch(`/api${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(values),
   })
 
@@ -47,4 +48,21 @@ export function registerRequest(
   values: RegisterFormValues,
 ): Promise<AuthResponse> {
   return authRequest<AuthResponse>("/auth/register", values)
+}
+
+export function getSessionRequest(): Promise<AuthUser> {
+  return apiRequest<AuthUser>("/auth/me")
+}
+
+export function logoutRequest(): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>("/auth/logout", { method: "POST" })
+}
+
+export function updateProfileRequest(
+  values: Pick<AuthUser, "name" | "email" | "phone" | "bio">,
+): Promise<AuthUser> {
+  return apiRequest<AuthUser>("/auth/me", {
+    method: "PUT",
+    body: JSON.stringify(values),
+  })
 }

@@ -1,4 +1,37 @@
 // Public catalog types — manual mirror of apps/web/lib/data/types.ts.
+export interface AudioSpot {
+  id: string;
+  spotNumber: number;
+  title: string;
+  duration: string;
+  description: string;
+  audioUrl?: string;
+  isFree: boolean;
+}
+
+export interface DestinationReview {
+  id: string;
+  userName: string;
+  userInitials: string;
+  destination: string;
+  destinationId: string | null;
+  rating: number;
+  comment: string;
+  status: 'APPROVED';
+  verified: boolean;
+  helpfulCount: number;
+  tags: string[];
+  createdAt: string;
+}
+
+export interface RatingBreakdown {
+  5: number;
+  4: number;
+  3: number;
+  2: number;
+  1: number;
+}
+
 export interface Destination {
   id: string;
   title: string;
@@ -15,6 +48,11 @@ export interface Destination {
   duration: string;
   listeners: string;
   isPopular?: boolean;
+  subtitle?: string;
+  audioSpots?: AudioSpot[];
+  reviews?: DestinationReview[];
+  reviewsCount?: number;
+  ratingBreakdown?: RatingBreakdown;
 }
 
 export interface CulturalFestival {

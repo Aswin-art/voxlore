@@ -1,25 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { AdminStore } from '../admin.store';
+import { PrismaService } from '../../../database/prisma.service';
+import { ReviewStatus } from '@prisma/client';
 import { AdminStatsResponseDto } from './get-stats.dto';
 
 @Injectable()
 export class GetStatsService {
-  constructor(private readonly store: AdminStore) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  execute(): AdminStatsResponseDto {
-    const destinations = this.store.getDestinations();
-    const events = this.store.getEvents();
-    const reviews = this.store.getReviews();
-
-    const pendingReviews = reviews.filter(
-      (r) => r.status === 'Perlu Moderasi',
-    ).length;
+  async execute(): Promise<AdminStatsResponseDto> {
+    const [totalDestinations, totalEvents, pendingReviews] = await Promise.all([
+      this.prisma.destination.count(),
+      this.prisma.festival.count(),
+      this.prisma.review.count({ where: { status: ReviewStatus.PENDING } }),
+    ]);
 
     return {
       stats: [
         {
           title: 'Total Destinasi & Situs',
-          value: `${destinations.length} Situs`,
+          value: `${totalDestinations} Situs`,
           subtext: '+12 bulan ini',
           icon: 'Compass01Icon',
           badgeColor:
@@ -27,14 +26,14 @@ export class GetStatsService {
         },
         {
           title: 'Event & Acara Adat Aktif',
-          value: `${events.length} Event`,
+          value: `${totalEvents} Event`,
           subtext: '4 minggu ini',
           icon: 'Calendar03Icon',
           badgeColor: 'bg-amber-500/10 text-amber-800 border-amber-500/20',
         },
         {
           title: 'Total Pengguna Terdaftar',
-          value: '12,480',
+          value: `${await this.prisma.user.count()} Pengguna`,
           subtext: 'Wisatawan & Komunitas',
           icon: 'UserGroupIcon',
           badgeColor: 'bg-blue-500/10 text-blue-800 border-blue-500/20',
@@ -47,8 +46,8 @@ export class GetStatsService {
           badgeColor: 'bg-purple-500/10 text-purple-800 border-purple-500/20',
         },
       ],
-      totalDestinations: destinations.length,
-      totalEvents: events.length,
+      totalDestinations,
+      totalEvents,
       pendingReviews,
     };
   }

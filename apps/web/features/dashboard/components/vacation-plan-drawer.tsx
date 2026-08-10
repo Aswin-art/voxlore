@@ -72,7 +72,7 @@ export function VacationPlanDrawer({ open, onOpenChange }: VacationPlanDrawerPro
                   </span>
                 </div>
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => removeItem(item.id, item.type)}
                   aria-label="Hapus dari rencana"
                   className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
                 >
