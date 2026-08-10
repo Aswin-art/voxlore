@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
         source: "/api/admin/:path*",
         destination: "http://localhost:3001/admin/:path*",
       },
+      {
+        source: "/api/vacation-plan/:path*",
+        destination: "http://localhost:3001/vacation-plan/:path*",
+      },
+      {
+        source: "/api/travel-plans/:path*",
+        destination: "http://localhost:3001/travel-plans/:path*",
+      },
+
     ]
   },
 }

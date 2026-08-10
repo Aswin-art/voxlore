@@ -19,10 +19,10 @@ import { useFestivals } from "@/features/events/hooks/use-festivals"
 import { useProvinces } from "@/features/shared/hooks/use-provinces"
 import type { TravelPlanFilter } from "@/features/events/types"
 import { festivalTypeLabel } from "@/features/events/types"
-import type { RecentPlanItem } from "@/features/dashboard/components/recent-plans-section"
 import { SearchableSelect } from "@/features/shared/components/searchable-select"
 import ErrorBoundary from "@/components/error-boundary"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import { apiRequest } from "@/features/auth/data/api-client"
 
 function SelectFestivalPlanContent() {
   const router = useRouter()
@@ -63,31 +63,21 @@ function SelectFestivalPlanContent() {
     }))
   }
 
-  const handleSavePlan = (events: ReturnType<typeof useFestivals>["festivals"]) => {
+  const handleSavePlan = async (events: ReturnType<typeof useFestivals>["festivals"]) => {
     const provinceName = selectedProvince !== "Semua" ? selectedProvince : "Seluruh Indonesia"
-    const dateStr = vacationStart && vacationEnd ? `${vacationStart} s/d ${vacationEnd}` : "Tanggal Terjadwal"
-    const fallbackEvent = events?.[0]
-    const chosenEvents = (events ?? []).filter((e) => selectedFestivalIds[e.id])
+    const dateRange = vacationStart && vacationEnd ? `${vacationStart} s/d ${vacationEnd}` : "Tanggal Terjadwal"
+    const chosenEvents = (events ?? []).filter((event) => selectedFestivalIds[event.id])
+    const items = chosenEvents.length > 0 ? chosenEvents : events?.[0] ? [events[0]] : []
 
-    const newPlan: RecentPlanItem = {
-      id: `plan-${Date.now()}`,
-      title: `Liburan Budaya ${provinceName}`,
-      province: provinceName,
-      dateRangeStr: dateStr,
-      eventsCount: chosenEvents.length,
-      createdDate: "Baru saja",
-      events: chosenEvents.length > 0 ? chosenEvents : (fallbackEvent ? [fallbackEvent] : []),
-    }
-
-    try {
-      const existingStr = localStorage.getItem("voxlore_recent_plans")
-      const existingPlans = existingStr ? JSON.parse(existingStr) : []
-      localStorage.setItem("voxlore_recent_plans", JSON.stringify([newPlan, ...existingPlans]))
-    } catch (err) {
-      console.error("Failed saving recent plan:", err)
-    }
-
-    router.push("/events")
+    await apiRequest("/travel-plans", {
+      method: "POST",
+      body: JSON.stringify({
+        title: `Liburan Budaya ${provinceName}`,
+        province: provinceName,
+        dateRange,
+        festivalIds: items.map((event) => event.id),
+      }),
+    }).then(() => router.push("/events")).catch(() => undefined)
   }
 
   return (

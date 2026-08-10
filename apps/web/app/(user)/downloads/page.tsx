@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -30,6 +30,8 @@ export interface DownloadedAudioSpot {
   size: string
   image: string
 }
+
+const DOWNLOADS_KEY = "voxlore.audio-downloads"
 
 const INITIAL_AUDIO_TRACKS: DownloadedAudioSpot[] = [
   {
@@ -118,13 +120,33 @@ export default function DownloadsPage() {
 function DownloadsPageContent() {
   const router = useRouter()
   const audioCtx = useAudioPlayer()
-  const [tracks, setTracks] = useState<DownloadedAudioSpot[]>(INITIAL_AUDIO_TRACKS)
+  const [tracks, setTracks] = useState<DownloadedAudioSpot[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [toast, setToast] = useState<string | null>(null)
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DOWNLOADS_KEY)
+      if (raw === null) {
+        const seedMap = Object.fromEntries(INITIAL_AUDIO_TRACKS.map((t) => [t.id, t]))
+        localStorage.setItem(DOWNLOADS_KEY, JSON.stringify(seedMap))
+        setTracks(INITIAL_AUDIO_TRACKS)
+      } else {
+        const stored = JSON.parse(raw) as Record<string, DownloadedAudioSpot>
+        setTracks(Object.values(stored))
+      }
+    } catch {
+      setTracks([])
+    }
+  }, [])
+
   const handleDeleteTrack = (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setTracks((prev) => prev.filter((item) => item.id !== id))
+    setTracks((prev) => {
+      const next = prev.filter((item) => item.id !== id)
+      localStorage.setItem(DOWNLOADS_KEY, JSON.stringify(Object.fromEntries(next.map((item) => [item.id, item]))))
+      return next
+    })
     if (audioCtx.currentTrack?.id === id) {
       audioCtx.dismissAudio()
     }
@@ -135,6 +157,7 @@ function DownloadsPageContent() {
   const handleClearAll = () => {
     if (tracks.length === 0) return
     setTracks([])
+    localStorage.setItem(DOWNLOADS_KEY, JSON.stringify({}))
     audioCtx.dismissAudio()
     setToast("Semua trek audio luring berhasil dihapus 🧹")
     setTimeout(() => setToast(null), 3000)

@@ -1,6 +1,7 @@
 "use client"
 
-import { Suspense, useState, useEffect, use } from "react"
+import { Suspense, useState, use } from "react"
+import { useMutation } from "@tanstack/react-query"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -24,7 +25,7 @@ import {
 import { WriteReviewDrawer } from "@/features/culture/components/write-review-drawer"
 import { ActiveAudioBar } from "@/features/dashboard/components/active-audio-bar"
 import { ToastBanner } from "@/features/shared/components/toast-banner"
-import type { UserReview } from "@/features/culture/data/culture-detail-data"
+import { createReview } from "@/features/culture/data/reviews-api"
 import { useDestinationDetail } from "@/features/culture/hooks/use-destination-detail"
 import { useAudioPlayback } from "@/features/culture/hooks/use-audio-playback"
 import ErrorBoundary from "@/components/error-boundary"
@@ -178,13 +179,10 @@ function CultureDetailContent({ id }: { id: string }) {
   } = useAudioPlayback()
 
   const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false)
-  const [reviewsList, setReviewsList] = useState<UserReview[]>([])
-
-  useEffect(() => {
-    if (detail) {
-      setReviewsList(detail.reviews)
-    }
-  }, [detail])
+  const reviewMutation = useMutation({
+    mutationFn: createReview,
+    onSuccess: () => void refetch(),
+  })
 
   if (isPending) {
     return <CultureDetailSkeleton />
@@ -199,26 +197,21 @@ function CultureDetailContent({ id }: { id: string }) {
   }
 
 
-  const handleAddReview = (review: { rating: number; comment: string; tags: string[] }) => {
-    const tagText = review.tags.length > 0 ? `[${review.tags.join(", ")}] ` : ""
-    const fullComment = `${tagText}${review.comment}`
-
-    const createdReview: UserReview = {
-      id: `r-${Date.now()}`,
-      userName: "Aswin",
-      userInitials: "A",
-      rating: review.rating,
-      date: "Baru saja",
-      comment: fullComment,
-      verified: true,
+  const handleAddReview = async (review: { rating: number; comment: string; tags: string[] }) => {
+    try {
+      await reviewMutation.mutateAsync({
+        destinationId: id,
+        rating: review.rating,
+        comment: review.comment,
+        tags: review.tags,
+      })
+      setToast("Ulasan Anda berhasil dikirim untuk moderasi")
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Ulasan gagal dikirim")
     }
-
-    setReviewsList([createdReview, ...reviewsList])
-    setToast("Ulasan Anda berhasil diterbitkan! 🎉")
-    setTimeout(() => setToast(null), 4000)
   }
 
-  const displayedReviews = reviewsList.slice(0, 5)
+  const displayedReviews = detail.reviews.slice(0, 5)
 
   return (
     <div className="flex flex-col min-h-screen bg-card text-foreground pb-12 relative">
@@ -355,7 +348,12 @@ function CultureDetailContent({ id }: { id: string }) {
                   let count = 0
                   detail.audioSpots.forEach((spot) => {
                     if (!downloadedSpots[spot.id] && downloadProgress[spot.id] === undefined) {
-                      handleDownloadSpot({ stopPropagation: () => {} } as any, spot)
+                      handleDownloadSpot({ stopPropagation: () => {} } as any, spot, {
+                        title: detail.title,
+                        siteName: detail.title,
+                        siteId: detail.id,
+                        image: detail.image,
+                      })
                       count++
                     }
                   })
@@ -465,7 +463,12 @@ function CultureDetailContent({ id }: { id: string }) {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDownloadSpot(e, spot)
+                          handleDownloadSpot(e, spot, {
+                            title: detail.title,
+                            siteName: detail.title,
+                            siteId: detail.id,
+                            image: detail.image,
+                          })
                           if (isDownloaded) {
                             setToast(`Audio "${spot.title}" dihapus dari unduhan 🗑️`)
                           } else {
@@ -619,7 +622,7 @@ function CultureDetailContent({ id }: { id: string }) {
                 </div>
 
                 <p className="text-xs text-muted-foreground leading-relaxed pl-0.5">
-                  "{rev.comment}"
+                  &quot;{rev.comment}&quot;
                 </p>
               </div>
             ))}

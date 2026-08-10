@@ -16,6 +16,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@workspace/ui/components/drawer"
+import { QUICK_TAGS } from "@/features/culture/data/culture-detail-data"
 
 export interface WriteReviewDrawerProps {
   isOpen: boolean
@@ -27,14 +28,6 @@ export interface WriteReviewDrawerProps {
   userName?: string
   userInitials?: string
 }
-
-const QUICK_TAGS = [
-  "Audio Jernih",
-  "Narasi Imersif",
-  "Alur Edukatif",
-  "Musik Etnik Pas",
-  "Sangat Direkomendasikan",
-]
 
 export function WriteReviewDrawer({
   isOpen,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const SESSION_COOKIE = "voxlore_token"
+const SESSION_COOKIE = "voxlore_session"
 
 const PROTECTED_PATHS = [
   "/home",

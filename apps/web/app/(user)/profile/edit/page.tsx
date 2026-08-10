@@ -13,27 +13,13 @@ import {
   CallIcon,
   Tick01Icon,
 } from "@hugeicons/core-free-icons"
-import { useSession } from "@/features/auth/hooks/use-auth"
-import type { AuthUser } from "@/features/auth/data/auth-api"
+import { useSession, useUpdateProfile } from "@/features/auth/hooks/use-auth"
 import {
   editProfileSchema,
   type EditProfileFormValues,
 } from "@/features/shared/data/forms-schema"
 import ErrorBoundary from "@/components/error-boundary"
 import { Skeleton } from "@workspace/ui/components/skeleton"
-
-const USER_KEY = "voxlore_user"
-
-/** Sesi awal dari localStorage (useSession cukup untuk baca; pastikan mount-safe). */
-function getInitialUser(): AuthUser | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = localStorage.getItem(USER_KEY)
-    return raw ? (JSON.parse(raw) as AuthUser) : null
-  } catch {
-    return null
-  }
-}
 
 function EditProfilePageSkeleton() {
   return (
@@ -70,11 +56,9 @@ function EditProfilePageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const updateProfile = useUpdateProfile()
 
-  const session = useSession()
-  const sessionUser = session.user
-  const initialUser = getInitialUser()
-  const user = sessionUser ?? initialUser
+  const { user } = useSession()
 
   const {
     register,
@@ -91,31 +75,22 @@ function EditProfilePageContent() {
     },
   })
 
-  const handleSubmitForm = handleSubmit((values) => {
+  const handleSubmitForm = handleSubmit(async (values) => {
     setIsSubmitting(true)
-
-    // Persist perubahan ke sesi (localStorage) agar profile/halaman lain sinkron.
-    setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(USER_KEY)
-        const current = raw ? (JSON.parse(raw) as AuthUser) : null
-        const next: AuthUser = {
-          ...(current ?? {}),
-          name: values.name,
-          email: values.email,
-          phone: values.phone,
-          bio: values.bio ?? "",
-        } as AuthUser
-        localStorage.setItem(USER_KEY, JSON.stringify(next))
-      } catch {
-        // abaikan — jangan blokir submit karena localStorage
-      }
+    try {
+      await updateProfile.mutateAsync({
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        bio: values.bio,
+      })
+      setToast("Profil berhasil diperbarui")
+      router.back()
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Profil gagal diperbarui")
+    } finally {
       setIsSubmitting(false)
-      setToast("Profil berhasil diperbarui ✨")
-      setTimeout(() => {
-        router.back()
-      }, 1200)
-    }, 1000)
+    }
   })
 
   return (

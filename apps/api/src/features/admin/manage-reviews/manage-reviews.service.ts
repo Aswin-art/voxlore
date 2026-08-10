@@ -1,36 +1,97 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { AdminStore, Review } from '../admin.store';
+import { PrismaService } from '../../../database/prisma.service';
+import { ReviewStatus } from '@prisma/client';
 import { UpdateReviewStatusDto } from './manage-reviews.dto';
+
+export interface Review {
+  id: string;
+  user: string;
+  destination: string;
+  rating: number;
+  comment: string;
+  time: string;
+  status: string;
+}
 
 @Injectable()
 export class ManageReviewsService {
-  constructor(private readonly store: AdminStore) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll(): Review[] {
-    return this.store.getReviews();
+  async findAll(): Promise<Review[]> {
+    const reviews = await this.prisma.review.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return reviews.map((review) => this.toReview(review));
   }
 
-  findOne(id: string): Review {
-    const review = this.store.getReviewById(id);
-    if (!review) {
-      throw new NotFoundException(`Review with id ${id} not found`);
-    }
-    return review;
+  async findOne(id: string): Promise<Review> {
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review) throw new NotFoundException(`Review with id ${id} not found`);
+    return this.toReview(review);
   }
 
-  updateStatus(id: string, dto: UpdateReviewStatusDto): Review {
-    const updated = this.store.updateReviewStatus(id, dto.status);
-    if (!updated) {
-      throw new NotFoundException(`Review with id ${id} not found`);
+  async updateStatus(id: string, dto: UpdateReviewStatusDto): Promise<Review> {
+    try {
+      const review = await this.prisma.review.update({
+        where: { id },
+        data: { status: this.toPrismaStatus(dto.status) },
+      });
+      return this.toReview(review);
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2025') {
+        throw new NotFoundException(`Review with id ${id} not found`);
+      }
+      throw error;
     }
-    return updated;
   }
 
-  delete(id: string): { success: boolean } {
-    const deleted = this.store.deleteReview(id);
-    if (!deleted) {
-      throw new NotFoundException(`Review with id ${id} not found`);
+  async delete(id: string): Promise<{ success: boolean }> {
+    try {
+      await this.prisma.review.delete({ where: { id } });
+      return { success: true };
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2025') {
+        throw new NotFoundException(`Review with id ${id} not found`);
+      }
+      throw error;
     }
-    return { success: true };
+  }
+
+  private toReview(review: {
+    id: string;
+    userName: string;
+    destination: string;
+    rating: number;
+    comment: string;
+    createdAt: Date;
+    status: ReviewStatus;
+  }): Review {
+    return {
+      id: review.id,
+      user: review.userName,
+      destination: review.destination,
+      rating: review.rating,
+      comment: review.comment,
+      time: review.createdAt.toISOString(),
+      status: this.fromPrismaStatus(review.status),
+    };
+  }
+
+  private toPrismaStatus(
+    status: UpdateReviewStatusDto['status'],
+  ): ReviewStatus {
+    return {
+      Setujui: ReviewStatus.APPROVED,
+      Tolak: ReviewStatus.REJECTED,
+      'Perlu Moderasi': ReviewStatus.PENDING,
+    }[status];
+  }
+
+  private fromPrismaStatus(status: ReviewStatus): string {
+    return {
+      APPROVED: 'Setujui',
+      REJECTED: 'Tolak',
+      PENDING: 'Perlu Moderasi',
+    }[status];
   }
 }

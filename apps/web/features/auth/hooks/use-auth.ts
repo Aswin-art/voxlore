@@ -1,51 +1,67 @@
 "use client"
 
-import { useMutation } from "@tanstack/react-query"
-import { loginRequest, registerRequest } from "../data/auth-api"
-import type { AuthResponse, AuthUser } from "../data/auth-api"
-import type { LoginFormValues, RegisterFormValues } from "../data/auth-schema"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  getSessionRequest,
+  loginRequest,
+  logoutRequest,
+  registerRequest,
+  updateProfileRequest,
+} from "../data/auth-api"
 
-const TOKEN_KEY = "voxlore_token"
-const USER_KEY = "voxlore_user"
-
-function persistSession(response: AuthResponse) {
-  localStorage.setItem(TOKEN_KEY, response.accessToken)
-  localStorage.setItem(USER_KEY, JSON.stringify(response.user))
-  document.cookie = `${TOKEN_KEY}=${response.accessToken}; path=/`
-}
+export const SESSION_QUERY_KEY = ["auth", "session"] as const
 
 export function useLogin() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: loginRequest,
-    onSuccess: persistSession,
+    onSuccess: ({ user }) => {
+      queryClient.setQueryData(SESSION_QUERY_KEY, user)
+    },
   })
 }
 
 export function useRegister() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: registerRequest,
-    onSuccess: persistSession,
+    onSuccess: ({ user }) => {
+      queryClient.setQueryData(SESSION_QUERY_KEY, user)
+    },
+  })
+}
+
+export function useLogout() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: logoutRequest,
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: SESSION_QUERY_KEY })
+    },
+  })
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateProfileRequest,
+    onSuccess: (user) => {
+      queryClient.setQueryData(SESSION_QUERY_KEY, user)
+    },
   })
 }
 
 export function useSession() {
-  const token =
-    typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY)
-  const rawUser =
-    typeof window === "undefined" ? null : localStorage.getItem(USER_KEY)
-
-  let user: AuthUser | null = null
-  if (rawUser) {
-    try {
-      user = JSON.parse(rawUser) as AuthUser
-    } catch {
-      user = null
-    }
-  }
+  const session = useQuery({
+    queryKey: SESSION_QUERY_KEY,
+    queryFn: getSessionRequest,
+    retry: false,
+    staleTime: 60_000,
+  })
 
   return {
-    token,
-    user,
-    isAuthenticated: Boolean(token),
+    user: session.data ?? null,
+    isAuthenticated: Boolean(session.data),
+    isLoading: session.isLoading,
   }
 }

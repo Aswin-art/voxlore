@@ -1,35 +1,32 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
+import { AuthService } from './auth.service';
+
+export interface AuthenticatedRequest extends Request {
+  user: { sub: string; email: string; role: string };
+}
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractToken(request);
-
-    if (!token) {
-      throw new UnauthorizedException('Token tidak ditemukan');
-    }
-
-    try {
-      const payload = await this.jwtService.verifyAsync(token);
-      (request as Request & { user: unknown }).user = payload;
-      return true;
-    } catch {
-      throw new UnauthorizedException('Token tidak valid');
-    }
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const token = this.extractSessionToken(request);
+    if (!token) throw new UnauthorizedException('Sesi tidak ditemukan');
+    request.user = await this.authService.getSession(token);
+    return true;
   }
 
-  private extractToken(request: Request): string | undefined {
-    const [, token] = request.headers.authorization?.split(' ') ?? [];
-    return token;
+  static extractSessionToken(request: Request): string | undefined {
+    const cookie = request.headers.cookie
+      ?.split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith('voxlore_session='));
+    return cookie?.slice('voxlore_session='.length);
+  }
+
+  private extractSessionToken(request: Request): string | undefined {
+    return JwtAuthGuard.extractSessionToken(request);
   }
 }
